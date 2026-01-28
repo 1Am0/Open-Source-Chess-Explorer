@@ -250,7 +250,17 @@ def main() -> None:
             continue
         if cmd == "exit":
             break
-        line.append(user_input)
+        board = line_to_board(line)
+        if board is None:
+            console.print("[red]Invalid input: current line is corrupted; reset or go back.[/red]")
+            continue
+        try:
+            move_obj = board.parse_san(user_input)
+        except ValueError:
+            console.print("[red]Invalid input: not a legal move in SAN from this position.[/red]")
+            continue
+        # Normalize move text to SAN so future parsing stays consistent.
+        line.append(board.san(move_obj))
 
 if __name__ == "__main__":
     main()
