@@ -14,10 +14,10 @@ SCHEMA_VERSION = 1
 HEADERS = {"User-Agent": "Open-Source-Chess-Explorer/1.0"}
 
 
-def load_store() -> Dict:
-    if not GAMES_FILE.exists():
+def load_store(path: Path = GAMES_FILE) -> Dict:
+    if not path.exists():
         return {"version": SCHEMA_VERSION, "games": []}
-    with GAMES_FILE.open("r", encoding="utf-8") as f:
+    with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     if "version" not in data:
         data["version"] = SCHEMA_VERSION
@@ -26,8 +26,8 @@ def load_store() -> Dict:
     return data
 
 
-def save_store(store: Dict) -> None:
-    GAMES_FILE.write_text(json.dumps(store, indent=4), encoding="utf-8")
+def save_store(store: Dict, path: Path = GAMES_FILE) -> None:
+    path.write_text(json.dumps(store, indent=4), encoding="utf-8")
 
 
 def _print_progress(done: int, total: int, width: int = 30) -> None:
@@ -108,7 +108,12 @@ def time_control_label(tc: str) -> str:
     return "classical"
 
 
-def parse_game(pgn_text: str, username: str, time_class: str | None = None) -> Dict:
+def parse_game(
+    pgn_text: str,
+    username: str,
+    time_class: str | None = None,
+    time_control_raw: str | None = None,
+) -> Dict:
     game = chess.pgn.read_game(io.StringIO(pgn_text))
     if game is None:
         raise ValueError("Invalid PGN")
@@ -166,19 +171,20 @@ def parse_game(pgn_text: str, username: str, time_class: str | None = None) -> D
         "my_rating": my_rating,
         "opponent_rating": opp_rating,
         "time_control": tc,
+        "time_control_raw": time_control_raw or headers.get("TimeControl", ""),
         "termination": termination,
         "url": url,
     }
 
 
-def import_games(username: str) -> None:
+def import_games(username: str, out_path: Path = GAMES_FILE) -> None:
     username = username.strip()
     raw_games = fetch_all_archives(username)
     if not raw_games:
         print("No games found.")
         return
 
-    store = load_store()
+    store = load_store(out_path)
     existing_ids = {g.get("game_id") for g in store["games"]}
 
     new_entries: List[Dict] = []
@@ -188,7 +194,12 @@ def import_games(username: str) -> None:
         pgn = g.get("pgn", "")
         if not pgn:
             continue
-        game = parse_game(pgn, username, time_class=g.get("time_class"))
+        game = parse_game(
+            pgn,
+            username,
+            time_class=g.get("time_class"),
+            time_control_raw=g.get("time_control"),
+        )
         if game["game_id"] in existing_ids:
             continue
         new_entries.append(game)
@@ -204,20 +215,26 @@ def import_games(username: str) -> None:
 
     store["games"].sort(key=_sort_key, reverse=True)
 
-    save_store(store)
-    print(f"Imported {added} new games to {GAMES_FILE}")
+    save_store(store, out_path)
+    print(f"Imported {added} new games to {out_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Import Chess.com games into games.json")
     parser.add_argument("username", nargs="?", help="Chess.com username")
+    parser.add_argument(
+        "--output",
+        "-o",
+        default=str(GAMES_FILE),
+        help="Path to output JSON (default games.json)",
+    )
     args = parser.parse_args()
 
     if args.username:
-        import_games(args.username)
+        import_games(args.username, Path(args.output))
     else:
         username = input("Enter chess.com username: ").strip()
-        import_games(username)
+        import_games(username, Path(args.output))
 
 
 if __name__ == "__main__":

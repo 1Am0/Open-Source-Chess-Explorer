@@ -70,6 +70,7 @@ def main() -> None:
     ap.add_argument("--result", choices=["1-0", "0-1", "1/2-1/2"])
     ap.add_argument("--opponent")
     ap.add_argument("--time-control", dest="time_control", choices=["bullet", "blitz", "rapid", "classical"])
+    ap.add_argument("--time-control-raw", dest="time_control_raw")
     ap.add_argument("--date-from")
     ap.add_argument("--date-to")
     ap.add_argument("--min-my-rating", type=int)
@@ -88,6 +89,7 @@ def main() -> None:
         result=args.result,
         opponent=args.opponent,
         time_control=args.time_control,
+        time_control_raw=args.time_control_raw,
         date_from=args.date_from,
         date_to=args.date_to,
         min_my_rating=args.min_my_rating,

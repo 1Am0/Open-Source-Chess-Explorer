@@ -24,9 +24,10 @@ Command-line helpers to import all your chess.com games and explore openings wit
    ```
 3) Import your games (fetches all archives, shows a monthly progress bar):
    ```bash
-   python importGames.py your_chesscom_username
+   python importGames.py your_chesscom_username --output games.json
    ```
-   This writes/updates `games.json` with newest games first.
+   - `--output` lets you write to a custom file; defaults to `games.json`.
+   - Stores chess.com `time_class` when present and the raw `TimeControl` as `time_control_raw`.
 4) Explore filtered games interactively:
    ```bash
    python exploreTrie.py --color white --time-control blitz --date-from 2025-11-30 --top 15
@@ -45,7 +46,7 @@ white_trie = tries["white"]
 ```
 
 ## Data Notes
-- Time controls prefer chess.com `time_class` when present; otherwise derived from `TimeControl` using chess.com thresholds (daily if correspondence, bullet/blitz/rapid/classical by total time; 10+0 is rapid).
+- Time controls prefer chess.com `time_class` when present; otherwise derived from `TimeControl` using chess.com thresholds (daily if correspondence, bullet/blitz/rapid/classical by total time; 10+0 is rapid). Raw `TimeControl` is stored as `time_control_raw` for exact matching.
 - Dates prefer PGN `EndDate` when present (fallback to `UTCDate`/`Date`).
 - Imports run parallel per-month and dedupe by `game_id` before writing.
 

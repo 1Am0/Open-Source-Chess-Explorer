@@ -24,6 +24,7 @@ def filter_games(
     result: Optional[str] = None,
     opponent: Optional[str] = None,
     time_control: Optional[str] = None,
+    time_control_raw: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     min_my_rating: Optional[int] = None,
@@ -43,6 +44,7 @@ def filter_games(
         g_result = game.get("result")
         g_opponent = game.get("opponent", "")
         g_time = game.get("time_control")
+        g_time_raw = game.get("time_control_raw")
         g_date_raw = game.get("date")
         g_date = _parse_date(g_date_raw)
         g_my = game.get("my_rating")
@@ -55,6 +57,8 @@ def filter_games(
         if opponent and g_opponent.lower() != opponent.lower():
             continue
         if time_control and g_time != time_control:
+            continue
+        if time_control_raw and g_time_raw != time_control_raw:
             continue
         if df and (not g_date or g_date < df):
             continue
