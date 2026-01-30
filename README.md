@@ -1,16 +1,16 @@
 # Open-Source Chess Explorer
 
-Command-line helper for exploring your chess.com games with fast per-move stats and on-demand Lichess cloud evals.
+Command-line helpers to import all your chess.com games and explore openings with fast per-move stats.
 
 ## Features
-- Pulls your recent chess.com games and builds color-aware opening trees.
-- Displays top continuations with win/draw/loss bars and cached cloud evals.
-- Interactive REPL: walk lines, undo/reset, swap perspective, and validate move input.
-- Eval cache persisted to `eval_cache.json` to avoid repeated API calls.
+- Import all chess.com archive months for a username into `games.json` (newest-first, deduped by `game_id`).
+- Simple JSON schema: `{"version": 1, "games": [...]}` with moves, result, color, ratings, time control, opponent, date, termination, url.
+- Programmatic filtering helpers (`filterGames.py`) to slice by color, result, opponent, time control, dates, ratings, and move ranges; build separate tries for white/black.
+- Interactive terminal explorer (`exploreTrie.py`) to browse next moves, step back/reset, and choose color-specific tries.
 
 ## Requirements
 - Python 3.10+
-- Packages: `python-chess`, `requests`, `rich` (see `requirements.txt` note below)
+- Packages: `python-chess`, `requests`
 
 ## Quick Start
 1) Create and activate a virtual env (optional but recommended):
@@ -20,32 +20,37 @@ Command-line helper for exploring your chess.com games with fast per-move stats 
    ```
 2) Install deps:
    ```bash
-   pip install python-chess requests rich
+   pip install python-chess requests
    ```
-3) Run:
+3) Import your games (fetches all archives, shows a monthly progress bar):
    ```bash
-   python Test.py
+   python importGames.py your_chesscom_username
    ```
-4) Enter your chess.com username when prompted.
+   This writes/updates `games.json` with newest games first.
+4) Explore filtered games interactively:
+   ```bash
+   python exploreTrie.py --color white --time-control blitz --date-from 2025-11-30 --top 15
+   ```
+   - Filters: `--color white|black`, `--result 1-0|0-1|1/2-1/2`, `--opponent NAME`, `--time-control bullet|blitz|rapid|classical`, `--date-from YYYY-MM-DD`, `--date-to YYYY-MM-DD`, rating bounds, and `--moves-start/--moves-end` to slice move lists.
+   - Controls: number = dive, `b` = back, `r` = reset, `q` = quit.
 
-## REPL Commands
-- Enter legal SAN moves to extend the line (invalid inputs are rejected in red).
-- `back` – undo last move
-- `reset` – return to starting position
-- `white` / `black` – switch perspective
-- `exit` – quit
+## Programmatic filtering
+```python
+from filterGames import load_games, filter_games, build_color_tries
 
-## Data Sources & Limits
-- Games fetched from chess.com public archives.
-- Evals retrieved from Lichess cloud eval; expect occasional HTTP 429 rate limits.
-- Eval cache stored in `eval_cache.json` (ignored by git by default).
+games = load_games()
+subset = filter_games(games, color="white", time_control="blitz", date_from="2025-11-30", moves_end=20)
+tries = build_color_tries(subset)
+white_trie = tries["white"]
+```
 
-## Notes
-- Only SAN input is accepted today. UCI/auto-complete could be added later.
-- If your line becomes invalid (e.g., typo earlier), reset or step back.
+## Data Notes
+- Time controls prefer chess.com `time_class` when present; otherwise derived from `TimeControl` using chess.com thresholds (daily if correspondence, bullet/blitz/rapid/classical by total time; 10+0 is rapid).
+- Dates prefer PGN `EndDate` when present (fallback to `UTCDate`/`Date`).
+- Imports run parallel per-month and dedupe by `game_id` before writing.
 
 ## Contributing
-PRs welcome. Ideas: configurable game count, local PGN import, better theming, tests for parsers/formatters, and a help menu.
+PRs welcome. Ideas: strict time-control matching (e.g., exact 10+0), local PGN import, tests for filters/parsing, richer stats output.
 
 ## License
 MIT. See [LICENSE](LICENSE).
