@@ -8,4 +8,8 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+.cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
 eval_cache.json

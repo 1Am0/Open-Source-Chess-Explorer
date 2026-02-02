@@ -1,0 +1,29 @@
+[Event "Casual"]
+[Site "https://example.com/game1"]
+[Date "2025.12.10"]
+[White "Hero"]
+[Black "OpponentA"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[Termination "Normal"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 1-0
+
+[Event "Casual"]
+[Site "https://example.com/game2"]
+[Date "2025.12.11"]
+[White "OpponentB"]
+[Black "Hero"]
+[Result "0-1"]
+[TimeControl "600+0"]
+[Termination "Normal"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 h6 6. Bh4 O-O 0-1
+
+[Event "SkipMe"]
+[Date "2025.12.12"]
+[White "Other"]
+[Black "Someone"]
+[Result "1/2-1/2"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1/2-1/2

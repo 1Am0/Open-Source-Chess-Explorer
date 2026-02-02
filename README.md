@@ -2,11 +2,14 @@
 
 Command-line helpers to import all your chess.com games and explore openings with fast per-move stats.
 
+Code now lives under the package `chess_explorer/`; installable entry points replace the old root scripts.
+
 ## Features
 - Import all chess.com archive months for a username into `games.json` (newest-first, deduped by `game_id`).
 - Simple JSON schema: `{"version": 1, "games": [...]}` with moves, result, color, ratings, time control, opponent, date, termination, url.
-- Programmatic filtering helpers (`filterGames.py`) to slice by color, result, opponent, time control, dates, ratings, and move ranges; build separate tries for white/black.
-- Interactive terminal explorer (`exploreTrie.py`) to browse next moves, step back/reset, and choose color-specific tries.
+- Programmatic filtering helpers (`filter_games.py`) to slice by color, result, opponent, time control, dates, ratings, and move ranges; build separate tries for white/black.
+- Interactive terminal explorer (`explore_trie.py`) to browse next moves, step back/reset, and choose color-specific tries.
+- Local PGN import: ingest your own PGN files into the same JSON schema.
 
 ## Requirements
 - Python 3.10+
@@ -18,26 +21,37 @@ Command-line helpers to import all your chess.com games and explore openings wit
    python -m venv .venv
    .venv\Scripts\activate
    ```
-2) Install deps:
+2) Install package in editable mode (installs deps and entry points):
    ```bash
-   pip install python-chess requests
+   pip install -e .
    ```
 3) Import your games (fetches all archives, shows a monthly progress bar):
    ```bash
-   python importGames.py your_chesscom_username --output games.json
+   chess-explore-import your_chesscom_username --output games.json
    ```
    - `--output` lets you write to a custom file; defaults to `games.json`.
    - Stores chess.com `time_class` when present and the raw `TimeControl` as `time_control_raw`.
+   - Add `--quiet` to suppress progress and summary output.
+    - To import local PGNs instead of chess.com archives:
+       ```bash
+       chess-explore-import-pgn your_username path/to/file_or_dir.pgn --output games.json
+       ```
 4) Explore filtered games interactively:
    ```bash
-   python exploreTrie.py --color white --time-control blitz --date-from 2025-11-30 --top 15
+   chess-explore-explore --input games.json --color white --time-control blitz --date-from 2025-11-30 --top 15
    ```
+5) Show top positions with optional evals:
+   ```bash
+   chess-explore-top --input games.json --plys 10 --limit 5 --skip-eval
+   ```
+   - Write structured output: `--output-json top.json` or `--output-csv top.csv`.
+   - Eval caching: `--eval-cache .cache/lichess_eval.json --eval-cache-ttl 604800` (7 days default).
    - Filters: `--color white|black`, `--result 1-0|0-1|1/2-1/2`, `--opponent NAME`, `--time-control bullet|blitz|rapid|classical`, `--date-from YYYY-MM-DD`, `--date-to YYYY-MM-DD`, rating bounds, and `--moves-start/--moves-end` to slice move lists.
    - Controls: number = dive, `b` = back, `r` = reset, `q` = quit.
 
 ## Programmatic filtering
 ```python
-from filterGames import load_games, filter_games, build_color_tries
+from chess_explorer.filter_games import load_games, filter_games, build_color_tries
 
 games = load_games()
 subset = filter_games(games, color="white", time_control="blitz", date_from="2025-11-30", moves_end=20)
@@ -49,9 +63,22 @@ white_trie = tries["white"]
 - Time controls prefer chess.com `time_class` when present; otherwise derived from `TimeControl` using chess.com thresholds (daily if correspondence, bullet/blitz/rapid/classical by total time; 10+0 is rapid). Raw `TimeControl` is stored as `time_control_raw` for exact matching.
 - Dates prefer PGN `EndDate` when present (fallback to `UTCDate`/`Date`).
 - Imports run parallel per-month and dedupe by `game_id` before writing.
+- Eval lookups cache Lichess cloud-eval responses per FEN on disk with a TTL to reduce network calls and allow reuse.
 
 ## Contributing
 PRs welcome. Ideas: strict time-control matching (e.g., exact 10+0), local PGN import, tests for filters/parsing, richer stats output.
+
+Run tests locally:
+```bash
+pip install -e .[dev]
+pytest
+```
+
+## Layout
+- `chess_explorer/` package with `import_games.py`, `filter_games.py`, `trie.py`, `explore_trie.py`, `top_positions.py`, and shared constants.
+- Console scripts via `pip install -e .`: `chess-explore-import`, `chess-explore-explore`, `chess-explore-top`.
+- Default data file: `games.json` in repo root (override with `--output` when importing, `--input` when reading).
+- Examples: `examples/sample_games.json` is a tiny dataset used by tests and CLI demos.
 
 ## License
 MIT. See [LICENSE](LICENSE).

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "game_id": "sample-1",
+      "moves": ["e4", "e5", "Nf3", "Nc6", "Bb5", "a6", "Ba4", "Nf6", "O-O", "Be7"],
+      "result": "1-0",
+      "color": "white",
+      "date": "2025-12-01",
+      "opponent": "opponent_a",
+      "my_rating": 1500,
+      "opponent_rating": 1520,
+      "time_control": "blitz",
+      "time_control_raw": "300+0",
+      "termination": "Normal",
+      "url": "https://www.chess.com/game/live/1"
+    },
+    {
+      "game_id": "sample-2",
+      "moves": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bg5", "Be7", "e3", "h6", "Bh4", "O-O"],
+      "result": "0-1",
+      "color": "white",
+      "date": "2025-12-02",
+      "opponent": "opponent_b",
+      "my_rating": 1480,
+      "opponent_rating": 1490,
+      "time_control": "rapid",
+      "time_control_raw": "600+0",
+      "termination": "Time forfeit",
+      "url": "https://www.chess.com/game/live/2"
+    },
+    {
+      "game_id": "sample-3",
+      "moves": ["Nf3", "d5", "g3", "c5", "Bg2", "Nc6", "d4", "cxd4", "Nxd4", "e5"],
+      "result": "1/2-1/2",
+      "color": "black",
+      "date": "2025-12-03",
+      "opponent": "opponent_c",
+      "my_rating": 1510,
+      "opponent_rating": 1500,
+      "time_control": "blitz",
+      "time_control_raw": "300+3",
+      "termination": "Draw",
+      "url": "https://www.chess.com/game/live/3"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "open-source-chess-explorer"
+version = "0.1.0"
+description = "CLI tools to import chess.com games and explore openings with stats"
+authors = [{ name = "Anthony", email = "" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+  "python-chess>=1.10,<2.0",
+  "requests>=2.32,<3.0",
+  "tqdm>=4.66,<5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/antho/Open-Source-Chess-Explorer"
+
+[project.scripts]
+chess-explore-import = "chess_explorer.import_games:main"
+chess-explore-explore = "chess_explorer.explore_trie:main"
+chess-explore-top = "chess_explorer.top_positions:main"
+chess-explore-import-pgn = "chess_explorer.import_pgn:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["chess_explorer"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "ruff>=0.6",
+  "black>=23.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
