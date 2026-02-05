@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 
 from .filter_games import build_color_tries, filter_games, load_games
 from .trie import Trie
+from .storage import path_for_player
 
 
 def _format_stats(stats: Dict[str, float]) -> str:
@@ -67,6 +68,7 @@ def interactive_traverse(trie: Trie, *, color_label: str = "", top: int = 20) ->
 def main() -> None:
     ap = argparse.ArgumentParser(description="Filter games and explore move trie interactively.")
     ap.add_argument("--input", default="games.json", help="Path to games JSON (default games.json)")
+    ap.add_argument("--player", help="Player store in games/<player>.json (overridden by --input)")
     ap.add_argument("--color", choices=["white", "black"])
     ap.add_argument("--result", choices=["1-0", "0-1", "1/2-1/2"])
     ap.add_argument("--opponent")
@@ -83,7 +85,11 @@ def main() -> None:
     ap.add_argument("--top", type=int, default=20, help="How many next moves to display (default 20)")
     args = ap.parse_args()
 
-    games = load_games(Path(args.input))
+    games_path = Path(args.input)
+    if args.player and args.input == "games.json":
+        games_path = path_for_player(args.player)
+
+    games = load_games(games_path)
     filtered = filter_games(
         games,
         color=args.color,

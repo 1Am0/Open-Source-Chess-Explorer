@@ -24,6 +24,7 @@ chess-explore-import = "chess_explorer.import_games:main"
 chess-explore-explore = "chess_explorer.explore_trie:main"
 chess-explore-top = "chess_explorer.top_positions:main"
 chess-explore-import-pgn = "chess_explorer.import_pgn:main"
+chess-explore-players = "chess_explorer.list_players:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["chess_explorer"]

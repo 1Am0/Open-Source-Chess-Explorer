@@ -1,0 +1,202 @@
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --accent: #7c3aed;
+  --accent-soft: rgba(124, 58, 237, 0.12);
+  --text: #e2e8f0;
+  --sub: #94a3b8;
+  --border: #1f2937;
+  --success: #22c55e;
+  --warning: #fbbf24;
+  font-family: 'Space Grotesk', system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.18), transparent 28%),
+              radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.16), transparent 30%),
+              var(--bg);
+  color: var(--text);
+}
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+header.shell {
+  padding-bottom: 0;
+}
+
+.brand {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.tagline {
+  margin: 6px 0 0;
+  color: var(--sub);
+  max-width: 720px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.board-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.board {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.25);
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.controls button {
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.controls button:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+.status { color: var(--sub); font-size: 14px; }
+
+.path {
+  min-height: 22px;
+  font-size: 14px;
+  color: var(--sub);
+  word-break: break-word;
+}
+
+.side { display: flex; flex-direction: column; gap: 16px; }
+
+.collapsible-bar {
+  display: flex;
+  gap: 10px;
+}
+
+.collapsible-bar button {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--text);
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.collapsible-bar button:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+.collapsible-body {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hidden { display: none; }
+
+.filters {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-row { display: flex; flex-direction: column; gap: 6px; }
+
+.filter-row label { color: var(--sub); font-size: 13px; }
+
+.filter-row select,
+.filter-row input,
+.filter-row button {
+  background: #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.filter-row select:focus,
+.filter-row input:focus,
+.filter-row button:focus { outline: 1px solid var(--accent); }
+
+.filter-row button { background: var(--accent); border-color: transparent; cursor: pointer; }
+.filter-row button:hover { filter: brightness(1.05); }
+
+.dual { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.stats {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--sub);
+}
+
+#importStatus { font-size: 13px; color: var(--sub); }
+
+.stats strong { color: var(--text); }
+
+.next-moves { display: flex; flex-direction: column; gap: 10px; }
+
+.section-title { font-weight: 600; letter-spacing: 0.3px; }
+
+#nextMoves { display: grid; gap: 8px; }
+
+.move-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0d1526;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 120ms ease;
+}
+
+.move-card:hover { border-color: var(--accent); }
+
+.move-card .move { font-weight: 600; color: var(--text); }
+
+.move-card .line { color: var(--sub); font-size: 13px; }
+
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .board { max-width: none; }
+}

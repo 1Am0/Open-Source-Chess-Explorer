@@ -1,39 +1,34 @@
 import argparse
 import concurrent.futures
 import datetime as dt
+import functools
 import io
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import chess.pgn
 import requests
 from tqdm import tqdm
 
-from .constants import DEFAULT_GAMES_FILE, SCHEMA_VERSION, USER_AGENT
+from .constants import USER_AGENT
+from .storage import load_store, resolve_store_path, save_store
 
-HEADERS = {"User-Agent": USER_AGENT}
-
-
-def load_store(path: Path = DEFAULT_GAMES_FILE) -> Dict:
-    if not path.exists():
-        return {"version": SCHEMA_VERSION, "games": []}
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    if "version" not in data:
-        data["version"] = SCHEMA_VERSION
-    if "games" not in data:
-        data["games"] = []
-    return data
+HEADERS = {"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"}
 
 
-def save_store(store: Dict, path: Path = DEFAULT_GAMES_FILE) -> None:
-    path.write_text(json.dumps(store, indent=4), encoding="utf-8")
+def _make_session() -> requests.Session:
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=8, pool_maxsize=16)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    session.headers.update(HEADERS)
+    return session
 
 
-def _fetch_month(idx_url: Tuple[int, str]) -> Tuple[int, List[Dict]]:
+def _fetch_month(session: requests.Session, idx_url: Tuple[int, str]) -> Tuple[int, List[Dict]]:
     idx, archive_url = idx_url
-    r = requests.get(archive_url, headers=HEADERS, timeout=30)
+    r = session.get(archive_url, timeout=30)
     r.raise_for_status()
     monthly_games = r.json().get("games", [])
     return idx, list(reversed(monthly_games))
@@ -41,27 +36,32 @@ def _fetch_month(idx_url: Tuple[int, str]) -> Tuple[int, List[Dict]]:
 
 def fetch_all_archives(username: str, *, show_progress: bool = True) -> List[Dict]:
     archives_url = f"https://api.chess.com/pub/player/{username}/games/archives"
-    r = requests.get(archives_url, headers=HEADERS, timeout=15)
-    r.raise_for_status()
-    archives = r.json().get("archives", [])
-    if not archives:
-        return []
+    session = _make_session()
+    try:
+        r = session.get(archives_url, timeout=15)
+        r.raise_for_status()
+        archives = r.json().get("archives", [])
+        if not archives:
+            return []
 
-    items: List[Tuple[int, str]] = [(i, url) for i, url in enumerate(reversed(archives))]
-    total = len(items)
-    all_games: List[Dict] = []
+        items: List[Tuple[int, str]] = [(i, url) for i, url in enumerate(reversed(archives))]
+        total = len(items)
+        all_games: List[Dict] = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, total)) as ex:
-        with tqdm(total=total, disable=not show_progress, desc="Fetching archives") as pbar:
-            for idx, games in ex.map(_fetch_month, items):
-                all_games.append((idx, games))
-                pbar.update(1)
+        fetch = functools.partial(_fetch_month, session)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, total)) as ex:
+            with tqdm(total=total, disable=not show_progress, desc="Fetching archives") as pbar:
+                for idx, games in ex.map(fetch, items):
+                    all_games.append((idx, games))
+                    pbar.update(1)
 
-    all_games_sorted: List[Dict] = []
-    for _, games in sorted(all_games, key=lambda x: x[0]):
-        all_games_sorted.extend(games)
+        all_games_sorted: List[Dict] = []
+        for _, games in sorted(all_games, key=lambda x: x[0]):
+            all_games_sorted.extend(games)
 
-    return all_games_sorted
+        return all_games_sorted
+    finally:
+        session.close()
 
 
 def time_control_label(tc: str) -> str:
@@ -155,15 +155,22 @@ def parse_game(
     }
 
 
-def import_games(username: str, out_path: Path = DEFAULT_GAMES_FILE, *, quiet: bool = False) -> None:
+def import_games(
+    username: str,
+    *,
+    player: Optional[str] = None,
+    out_path: Optional[Path] = None,
+    quiet: bool = False,
+) -> None:
     username = username.strip()
+    target_path = resolve_store_path(player or username, out_path)
     raw_games = fetch_all_archives(username, show_progress=not quiet)
     if not raw_games:
         if not quiet:
             print("No games found.")
         return
 
-    store = load_store(out_path)
+    store = load_store(target_path)
     existing_ids = {g.get("game_id") for g in store["games"]}
 
     new_entries: List[Dict] = []
@@ -191,28 +198,39 @@ def import_games(username: str, out_path: Path = DEFAULT_GAMES_FILE, *, quiet: b
 
     store["games"].sort(key=_sort_key, reverse=True)
 
-    save_store(store, out_path)
+    save_store(store, target_path)
     if not quiet:
-        print(f"Imported {len(new_entries)} new games to {out_path}")
+        print(f"Imported {len(new_entries)} new games to {target_path}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import Chess.com games into games.json")
     parser.add_argument("username", nargs="?", help="Chess.com username")
+    parser.add_argument("--player", help="Name to store under games/<player>.json (default: username)")
     parser.add_argument(
         "--output",
         "-o",
-        default=str(DEFAULT_GAMES_FILE),
-        help="Path to output JSON (default games.json)",
+        default=None,
+        help="Path to output JSON (overrides --player)",
     )
     parser.add_argument("--quiet", action="store_true", help="Suppress progress and summary output")
     args = parser.parse_args()
 
     if args.username:
-        import_games(args.username, Path(args.output), quiet=args.quiet)
+        import_games(
+            args.username,
+            player=args.player or args.username,
+            out_path=Path(args.output) if args.output else None,
+            quiet=args.quiet,
+        )
     else:
         username = input("Enter chess.com username: ").strip()
-        import_games(username, Path(args.output), quiet=args.quiet)
+        import_games(
+            username,
+            player=args.player or username,
+            out_path=Path(args.output) if args.output else None,
+            quiet=args.quiet,
+        )
 
 
 if __name__ == "__main__":

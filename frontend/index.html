@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chess Canopy</title>
+  <link href="https://fonts.bunny.net/css?family=space-grotesk:400,500,600" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="shell">
+    <div class="brand">Chess Canopy</div>
+  </header>
+
+  <main class="shell layout">
+    <section class="panel board-panel">
+      <div id="board" class="board"></div>
+      <div class="controls">
+        <button id="undoBtn" type="button">Undo</button>
+        <button id="resetBtn" type="button">Reset</button>
+        <span class="status" id="statusText">Loading…</span>
+      </div>
+      <div class="path" id="pathTrail"></div>
+    </section>
+
+    <section class="panel side">
+      <div class="collapsible-bar">
+        <button id="importToggle" type="button">Import</button>
+        <button id="filterToggle" type="button">Filters</button>
+      </div>
+
+      <div id="importPanel" class="collapsible-body">
+        <div class="filter-row">
+          <label for="importUsername">Chess.com username</label>
+          <input id="importUsername" type="text" placeholder="e.g. hikaru" />
+        </div>
+        <div class="filter-row actions">
+          <button id="importBtn" type="button">Import games</button>
+        </div>
+        <div id="importStatus"></div>
+      </div>
+
+      <div id="filterPanel" class="collapsible-body">
+        <div class="filters">
+          <div class="filter-row">
+            <label for="playerSelect">Player store</label>
+            <div class="dual">
+              <select id="playerSelect"></select>
+              <input id="playerInput" type="text" placeholder="New player name" />
+            </div>
+            <button id="refreshPlayers" type="button">Refresh players</button>
+          </div>
+          <div class="filter-row">
+            <label for="color">Color</label>
+            <select id="color">
+              <option value="white" selected>White</option>
+              <option value="black">Black</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label for="result">Result</label>
+            <select id="result">
+              <option value="">Any</option>
+              <option value="1-0">1-0</option>
+              <option value="0-1">0-1</option>
+              <option value="1/2-1/2">1/2-1/2</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label for="timeControl">Time control</label>
+            <select id="timeControl">
+              <option value="">Any</option>
+              <option value="bullet">Bullet</option>
+              <option value="blitz">Blitz</option>
+              <option value="rapid">Rapid</option>
+              <option value="classical">Classical</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label for="dateFrom">Date range</label>
+            <div class="dual">
+              <input id="dateFrom" type="date" />
+              <input id="dateTo" type="date" />
+            </div>
+          </div>
+          <div class="filter-row">
+            <label for="minOppRating">Opponent rating</label>
+            <div class="dual">
+              <input id="minOppRating" type="number" placeholder="Min" />
+              <input id="maxOppRating" type="number" placeholder="Max" />
+            </div>
+          </div>
+          <div class="filter-row actions">
+            <button id="applyFilters" type="button">Apply filters</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+      <div class="next-moves">
+        <div class="section-title">Next moves</div>
+        <div id="nextMoves"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

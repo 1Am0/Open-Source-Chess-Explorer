@@ -7,8 +7,8 @@ from typing import Iterable, List
 import chess.pgn
 from tqdm import tqdm
 
-from .constants import DEFAULT_GAMES_FILE
-from .import_games import load_store, parse_game, save_store
+from .import_games import parse_game
+from .storage import load_store, resolve_store_path, save_store
 
 
 def _collect_pgn_files(paths: Iterable[Path]) -> List[Path]:
@@ -22,15 +22,23 @@ def _collect_pgn_files(paths: Iterable[Path]) -> List[Path]:
     return files
 
 
-def import_pgn_files(username: str, inputs: Iterable[Path], out_path: Path = DEFAULT_GAMES_FILE, *, quiet: bool = False) -> None:
+def import_pgn_files(
+    username: str,
+    inputs: Iterable[Path],
+    *,
+    player: str | None = None,
+    out_path: Path | None = None,
+    quiet: bool = False,
+) -> None:
     username_l = username.lower().strip()
+    target_path = resolve_store_path(player or username, out_path)
     files = _collect_pgn_files(inputs)
     if not files:
         if not quiet:
             print("No PGN files found.")
         return
 
-    store = load_store(out_path)
+    store = load_store(target_path)
     existing_ids = {g.get("game_id") for g in store["games"]}
     new_entries = []
 
@@ -72,23 +80,28 @@ def import_pgn_files(username: str, inputs: Iterable[Path], out_path: Path = DEF
 
     if new_entries:
         store["games"] = new_entries + store["games"]
-        save_store(store, out_path)
+        save_store(store, target_path)
 
     if not quiet:
-        print(f"Imported {len(new_entries)} new games to {out_path}")
+        print(f"Imported {len(new_entries)} new games to {target_path}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import local PGN files into games.json")
     parser.add_argument("username", help="Your username to identify color in PGNs")
     parser.add_argument("inputs", nargs="+", help="PGN files or directories containing PGNs")
-    parser.add_argument(
-        "--output", "-o", default=str(DEFAULT_GAMES_FILE), help="Path to output JSON (default games.json)"
-    )
+    parser.add_argument("--player", help="Name to store under games/<player>.json (default: username)")
+    parser.add_argument("--output", "-o", default=None, help="Path to output JSON (overrides --player)")
     parser.add_argument("--quiet", action="store_true", help="Suppress progress and summary output")
     args = parser.parse_args()
 
-    import_pgn_files(args.username, [Path(p) for p in args.inputs], out_path=Path(args.output), quiet=args.quiet)
+    import_pgn_files(
+        args.username,
+        [Path(p) for p in args.inputs],
+        player=args.player or args.username,
+        out_path=Path(args.output) if args.output else None,
+        quiet=args.quiet,
+    )
 
 
 if __name__ == "__main__":

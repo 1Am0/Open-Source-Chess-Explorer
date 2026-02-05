@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 from .constants import DEFAULT_GAMES_FILE
+from .storage import load_games as _load_games
 from .trie import Trie
 
 
@@ -114,6 +115,4 @@ def build_color_tries(games: Iterable[Dict]) -> Dict[str, Trie]:
 
 
 def load_games(path: Path = DEFAULT_GAMES_FILE) -> List[Dict]:
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data.get("games", [])
+    return _load_games(path)
