@@ -359,7 +359,8 @@
   // Arrow key navigation for chess moves
   document.addEventListener('keydown', (e) => {
     // Ignore if user is typing in an input field
-    if (e.target.matches('input, textarea, select')) return;
+    const tagName = e.target.tagName.toLowerCase();
+    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') return;
     
     switch (e.key) {
       case 'ArrowLeft':
