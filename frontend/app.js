@@ -1,13 +1,17 @@
 // Simple in-browser explorer that calls the Python backend for move stats.
 (function () {
   const boardEl = document.getElementById('board');
+  const boardPanel = document.querySelector('.board-panel');
   const statusEl = document.getElementById('statusText');
   const pathEl = document.getElementById('pathTrail');
   const statsEl = document.getElementById('stats');
   const nextMovesEl = document.getElementById('nextMoves');
+  const sidePanel = document.querySelector('.side');
   const applyBtn = document.getElementById('applyFilters');
-  const undoBtn = document.getElementById('undoBtn');
-  const resetBtn = document.getElementById('resetBtn');
+  const toStartBtn = document.getElementById('toStartBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const toEndBtn = document.getElementById('toEndBtn');
   const importBtn = document.getElementById('importBtn');
   const importStatusEl = document.getElementById('importStatus');
   const importUsernameEl = document.getElementById('importUsername');
@@ -35,6 +39,7 @@
 
   const chess = new window.Chess();
   let pathSAN = [];
+  let cursor = 0; // index of next move to play in pathSAN
   let lastPayload = null;
   let loadedPlayers = [];
 
@@ -45,6 +50,31 @@
     onDrop: handleDrop,
     onSnapEnd: () => board.position(chess.fen(), false),
   });
+
+  // Keep sidebar height aligned to board panel on desktop sizes.
+  function syncPanelHeight() {
+    if (!sidePanel || !boardPanel) return;
+    if (window.innerWidth <= 900) {
+      sidePanel.style.height = 'auto';
+      return;
+    }
+    sidePanel.style.height = `${boardPanel.offsetHeight}px`;
+  }
+
+  syncPanelHeight();
+  window.addEventListener('resize', syncPanelHeight);
+
+  function currentPath() {
+    return pathSAN.slice(0, cursor);
+  }
+
+  function rebuildPosition() {
+    chess.reset();
+    const seq = currentPath();
+    seq.forEach((san) => chess.move(san));
+    board.position(chess.fen(), false);
+    pathEl.textContent = seq.join(' ');
+  }
 
   function selectedPlayer() {
     const custom = playerInput.value.trim();
@@ -62,7 +92,7 @@
       date_to: dateToEl.value || null,
       min_opponent_rating: minOppRatingEl.value ? Number(minOppRatingEl.value) : null,
       max_opponent_rating: maxOppRatingEl.value ? Number(maxOppRatingEl.value) : null,
-      path: pathSAN,
+      path: currentPath(),
     };
     lastPayload = payload;
     return payload;
@@ -100,7 +130,7 @@
 
   async function fetchNextMoves() {
     const payload = lastPayload || gatherFilters();
-    payload.path = pathSAN;
+    payload.path = currentPath();
     statusEl.textContent = 'Loading…';
     try {
       const res = await fetch('/api/next-moves', {
@@ -120,8 +150,12 @@
   function handleDrop(source, target) {
     const move = chess.move({ from: source, to: target, promotion: 'q' });
     if (move === null) return 'snapback';
+    if (cursor < pathSAN.length) {
+      pathSAN = pathSAN.slice(0, cursor);
+    }
     pathSAN.push(move.san);
-    pathEl.textContent = pathSAN.join(' ');
+    cursor = pathSAN.length;
+    pathEl.textContent = currentPath().join(' ');
     fetchNextMoves();
   }
 
@@ -138,6 +172,22 @@
     `;
   }
 
+  function applyMoveFromCard(moveSAN) {
+    if (cursor < pathSAN.length) {
+      pathSAN = pathSAN.slice(0, cursor);
+    }
+    const applied = chess.move(moveSAN);
+    if (!applied) {
+      statusEl.textContent = 'Move could not be applied here.';
+      return;
+    }
+    pathSAN.push(moveSAN);
+    cursor = pathSAN.length;
+    board.position(chess.fen(), false);
+    pathEl.textContent = currentPath().join(' ');
+    fetchNextMoves();
+  }
+
   function updateNextMoves(list) {
     nextMovesEl.innerHTML = '';
     if (!list || list.length === 0) {
@@ -149,39 +199,66 @@
       const wins = item.stats?.wins || 0;
       const draws = item.stats?.draws || 0;
       const losses = item.stats?.losses || 0;
-      const winRate = total ? ((wins / total) * 100).toFixed(1) : '0.0';
       const card = document.createElement('div');
       card.className = 'move-card';
+      const winRate = total ? (wins / total) * 100 : 0;
+      const drawRate = total ? (draws / total) * 100 : 0;
+      const lossRate = total ? (losses / total) * 100 : 0;
+      const segments = [];
+      if (winRate > 0) segments.push(`<div class="result-segment result-win" style="width:${winRate}%;" title="${winRate.toFixed(0)}% wins">${winRate >= 10 ? winRate.toFixed(0) + '%' : ''}</div>`);
+      if (drawRate > 0) segments.push(`<div class="result-segment result-draw" style="width:${drawRate}%;" title="${drawRate.toFixed(0)}% draws">${drawRate >= 10 ? drawRate.toFixed(0) + '%' : ''}</div>`);
+      if (lossRate > 0) segments.push(`<div class="result-segment result-loss" style="width:${lossRate}%;" title="${lossRate.toFixed(0)}% losses">${lossRate >= 10 ? lossRate.toFixed(0) + '%' : ''}</div>`);
       card.innerHTML = `
-        <div class="move">${item.move}</div>
-        <div class="line">T ${total} · W ${wins} · D ${draws} · L ${losses} · WR ${winRate}%</div>
+        <div class="move-row">
+          <div class="move">${item.move}</div>
+          <div class="result-bar">${segments.join('')}</div>
+        </div>
       `;
+      card.addEventListener('click', () => applyMoveFromCard(item.move));
       nextMovesEl.appendChild(card);
     });
   }
 
   function updateUI(data) {
     if (!data) return;
-    pathEl.textContent = pathSAN.join(' ');
+    pathEl.textContent = currentPath().join(' ');
     statusEl.textContent = data.games ? `${data.games} games match filters` : 'No games for these filters';
     updateStats(data.stats, data.games);
     updateNextMoves(data.next);
   }
 
   function undoMove() {
-    const m = chess.undo();
-    if (!m) return;
-    pathSAN.pop();
-    board.position(chess.fen(), false);
-    pathEl.textContent = pathSAN.join(' ');
+    if (cursor === 0) return;
+    cursor -= 1;
+    rebuildPosition();
     fetchNextMoves();
   }
 
   function resetBoard() {
     chess.reset();
     pathSAN = [];
+    cursor = 0;
     board.start();
     pathEl.textContent = '';
+    fetchNextMoves();
+  }
+
+  function redoMove() {
+    if (cursor >= pathSAN.length) return;
+    cursor += 1;
+    rebuildPosition();
+    fetchNextMoves();
+  }
+
+  function jumpToStart() {
+    cursor = 0;
+    rebuildPosition();
+    fetchNextMoves();
+  }
+
+  function jumpToEnd() {
+    cursor = pathSAN.length;
+    rebuildPosition();
     fetchNextMoves();
   }
 
@@ -223,6 +300,7 @@
       importStatusEl.textContent = `Imported ${data.imported} new (total ${data.total}).`;
       // Refresh filters/trie after import
       pathSAN = [];
+      cursor = 0;
       chess.reset();
       board.start();
       pathEl.textContent = '';
@@ -240,6 +318,7 @@
 
   applyBtn.addEventListener('click', () => {
     pathSAN = [];
+    cursor = 0;
     chess.reset();
     board.start();
     pathEl.textContent = '';
@@ -250,6 +329,7 @@
   refreshPlayersBtn?.addEventListener('click', async () => {
     await fetchPlayers();
     pathSAN = [];
+    cursor = 0;
     chess.reset();
     board.start();
     pathEl.textContent = '';
@@ -260,6 +340,7 @@
   playerSelect?.addEventListener('change', () => {
     playerInput.value = '';
     pathSAN = [];
+    cursor = 0;
     chess.reset();
     board.start();
     pathEl.textContent = '';
@@ -267,11 +348,38 @@
     fetchNextMoves();
   });
 
-  undoBtn.addEventListener('click', undoMove);
-  resetBtn.addEventListener('click', resetBoard);
+  toStartBtn?.addEventListener('click', jumpToStart);
+  prevBtn?.addEventListener('click', undoMove);
+  nextBtn?.addEventListener('click', redoMove);
+  toEndBtn?.addEventListener('click', jumpToEnd);
   importBtn?.addEventListener('click', importGames);
   importToggle?.addEventListener('click', () => togglePanel(importPanel));
   filterToggle?.addEventListener('click', () => togglePanel(filterPanel));
+
+  // Arrow key navigation for chess moves
+  document.addEventListener('keydown', (e) => {
+    // Ignore if user is typing in an input field
+    if (e.target.matches('input, textarea, select')) return;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        undoMove();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        redoMove();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        jumpToStart();
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        jumpToEnd();
+        break;
+    }
+  });
 
   // Kick things off
   fetchPlayers().then(() => {

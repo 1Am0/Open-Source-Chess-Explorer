@@ -17,11 +17,13 @@
     <section class="panel board-panel">
       <div id="board" class="board"></div>
       <div class="controls">
-        <button id="undoBtn" type="button">Undo</button>
-        <button id="resetBtn" type="button">Reset</button>
-        <span class="status" id="statusText">Loading…</span>
+        <button id="toStartBtn" type="button" title="Go to start">«</button>
+        <button id="prevBtn" type="button" title="Previous move">‹</button>
+        <button id="nextBtn" type="button" title="Next move">›</button>
+        <button id="toEndBtn" type="button" title="Go to end">»</button>
       </div>
       <div class="path" id="pathTrail"></div>
+      <div class="status" id="statusText">Loading…</div>
     </section>
 
     <section class="panel side">
