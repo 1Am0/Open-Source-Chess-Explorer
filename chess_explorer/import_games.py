@@ -4,6 +4,7 @@ import datetime as dt
 import functools
 import io
 import json
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -155,6 +156,23 @@ def parse_game(
     }
 
 
+def _parse_single_game(args: Tuple[Dict, str]) -> Optional[Dict]:
+    """Helper to parse a single game dict - returns None if PGN is empty or invalid."""
+    g, username = args
+    pgn = g.get("pgn", "")
+    if not pgn:
+        return None
+    try:
+        return parse_game(
+            pgn,
+            username,
+            time_class=g.get("time_class"),
+            time_control_raw=g.get("time_control"),
+        )
+    except Exception:
+        return None
+
+
 def import_games(
     username: str,
     *,
@@ -162,33 +180,58 @@ def import_games(
     out_path: Optional[Path] = None,
     quiet: bool = False,
 ) -> None:
+    t_start = time.perf_counter()
     username = username.strip()
     target_path = resolve_store_path(player or username, out_path)
+    
+    t0 = time.perf_counter()
     raw_games = fetch_all_archives(username, show_progress=not quiet)
+    t1 = time.perf_counter()
+    if not quiet:
+        print(f"Fetched {len(raw_games)} games in {(t1-t0)*1000:.0f}ms")
+    
     if not raw_games:
         if not quiet:
             print("No games found.")
         return
 
+    t2 = time.perf_counter()
     store = load_store(target_path)
     existing_ids = {g.get("game_id") for g in store["games"]}
+    t3 = time.perf_counter()
+    if not quiet:
+        print(f"Loaded existing {len(store['games'])} games in {(t3-t2)*1000:.0f}ms")
 
     new_entries: List[Dict] = []
 
-    for g in raw_games:
-        pgn = g.get("pgn", "")
-        if not pgn:
+    t4 = time.perf_counter()
+    
+    # Parse games in parallel (4-8x speedup on typical CPUs)
+    parse_args = [(g, username) for g in raw_games]
+    parsed_games: List[Optional[Dict]] = []
+    
+    max_workers = min(8, len(raw_games))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+        if not quiet:
+            with tqdm(total=len(raw_games), desc="Parsing games") as pbar:
+                for parsed in ex.map(_parse_single_game, parse_args):
+                    parsed_games.append(parsed)
+                    pbar.update(1)
+        else:
+            parsed_games = list(ex.map(_parse_single_game, parse_args))
+    
+    # Filter out None values and duplicates
+    for game in parsed_games:
+        if game is None:
             continue
-        game = parse_game(
-            pgn,
-            username,
-            time_class=g.get("time_class"),
-            time_control_raw=g.get("time_control"),
-        )
         if game["game_id"] in existing_ids:
             continue
         new_entries.append(game)
         existing_ids.add(game["game_id"])
+    
+    t5 = time.perf_counter()
+    if not quiet:
+        print(f"Parsed {len(raw_games)} games in {(t5-t4)*1000:.0f}ms ({len(new_entries)} new)")
 
     if new_entries:
         store["games"] = new_entries + store["games"]
@@ -196,10 +239,18 @@ def import_games(
     def _sort_key(game: Dict) -> Tuple[str, str]:
         return (game.get("date", "0000-00-00"), game.get("game_id", ""))
 
+    t6 = time.perf_counter()
     store["games"].sort(key=_sort_key, reverse=True)
-
-    save_store(store, target_path)
+    t7 = time.perf_counter()
     if not quiet:
+        print(f"Sorted {len(store['games'])} games in {(t7-t6)*1000:.0f}ms")
+
+    t8 = time.perf_counter()
+    save_store(store, target_path)
+    t9 = time.perf_counter()
+    if not quiet:
+        print(f"Saved JSON in {(t9-t8)*1000:.0f}ms")
+        print(f"Total import time: {(t9-t_start)*1000:.0f}ms")
         print(f"Imported {len(new_entries)} new games to {target_path}")
 
 

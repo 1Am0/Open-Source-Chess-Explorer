@@ -1,31 +1,66 @@
 # Open-Source Chess Explorer
 
-Command-line helpers to import all your chess.com games and explore openings with fast per-move stats.
+A fast chess opening explorer with a modern web UI and command-line tools to import and analyze all your chess.com games.
 
-Code now lives under the package `chess_explorer/`; installable entry points replace the old root scripts.
+Code lives under the package `chess_explorer/` with installable CLI entry points and a lightweight web frontend.
 
 ## Features
-- Import all chess.com archive months for a username into `games.json` (newest-first, deduped by `game_id`).
-- Simple JSON schema: `{"version": 1, "games": [...]}` with moves, result, color, ratings, time control, opponent, date, termination, url.
-- Programmatic filtering helpers (`filter_games.py`) to slice by color, result, opponent, time control, dates, ratings, and move ranges; build separate tries for white/black.
-- Interactive terminal explorer (`explore_trie.py`) to browse next moves, step back/reset, and choose color-specific tries.
-- Local PGN import: ingest your own PGN files into the same JSON schema.
+- 🌐 **Modern Web UI** - Interactive board with drag-and-drop moves, real-time statistics, and advanced filtering
+- 📥 **Chess.com Import** - Fetch all your games with parallel processing and progress tracking
+- 🎯 **Multi-Player Support** - Select and merge games from multiple players
+- ⚡ **Performance Optimized** - Parallel parsing, orjson support, and smart caching for instant responses
+- 🔍 **Advanced Filters** - Color, result, opponent, time control, rating ranges, date ranges
+- 📊 **Move Statistics** - Win/draw/loss breakdown per move with game counts
+- 🎮 **Interactive Terminal** - Browse openings in your terminal with keyboard navigation
+- 📝 **Local PGN Import** - Import your own PGN files into the same JSON schema
 
 ## Requirements
 - Python 3.10+
-- Packages: `python-chess`, `requests`
+- Core packages: `python-chess`, `requests`, `tqdm`
+- Optional for 2-3x faster performance: `orjson`
 
 ## Quick Start
-1) Create and activate a virtual env (optional but recommended):
+
+### Web UI (Recommended)
+1) Create and activate a virtual env:
    ```bash
    python -m venv .venv
-   .venv\Scripts\activate
+   .venv\Scripts\activate  # Windows
+   source .venv/bin/activate  # Linux/Mac
    ```
-2) Install package in editable mode (installs deps and entry points):
+
+2) Install package with optional performance boost:
    ```bash
    pip install -e .
+   pip install -e .[perf]  # Optional: adds orjson for 2-3x faster performance
    ```
-3) Import your games (fetches all archives, shows a monthly progress bar):
+
+3) Import your chess.com games:
+   ```bash
+   chess-explore-import your_username --player your_username
+   ```
+   - Parallel processing with progress bars
+   - Stores in `games/<player>.json`
+   - Use `--output` to override location
+
+4) Start the web server:
+   ```bash
+   python serve_frontend.py --port 8000 --games-dir games
+   ```
+   Open http://localhost:8000 in your browser!
+
+**Web UI Features:**
+- Drag and drop pieces on an interactive board
+- Click moves to jump to positions
+- Filter by player, color, result, time control, rating, dates
+- Import new players directly from the UI
+- Numbered move history with current position highlight
+- Real-time win/draw/loss statistics for each move
+- Smart caching - instant after first load
+
+### Command Line Tools
+
+Import games (fetches all archives, shows progress):
    ```bash
    chess-explore-import your_chesscom_username --player your_chesscom_username
    ```
@@ -49,13 +84,7 @@ Code now lives under the package `chess_explorer/`; installable entry points rep
    - Filters: `--color white|black`, `--result 1-0|0-1|1/2-1/2`, `--opponent NAME`, `--time-control bullet|blitz|rapid|classical`, `--date-from YYYY-MM-DD`, `--date-to YYYY-MM-DD`, rating bounds, and `--moves-start/--moves-end` to slice move lists.
    - Controls: number = dive, `b` = back, `r` = reset, `q` = quit.
 
-6) Optional: start the lightweight web UI (uses the same filters as `chess-explore-explore`):
-   ```bash
-   python serve_frontend.py --port 8000 --games-dir games
-   ```
-   Then open http://localhost:8000 to play moves on a board and see next-move stats. No top-position calls are used.
-
-7) List available player stores:
+6) List available player stores:
    ```bash
    chess-explore-players --games-dir games
    ```
@@ -70,26 +99,77 @@ tries = build_color_tries(subset)
 white_trie = tries["white"]
 ```
 
+## Performance
+
+**orjson (Recommended):**
+Installing orjson provides 2-3x faster JSON parsing and serialization:
+```bash
+pip install -e .[perf]  # or: pip install orjson
+```
+The application automatically detects and uses it when available.
+
+**Caching:**
+- Trie structures are cached per player and filter combination
+- Subsequent loads are near-instant (<50ms)
+- Cache invalidates automatically on new imports
+
+**Parallel Processing:**
+- Import: Fetches archives and parses PGN files using multiple threads
+- ~7,000 games import in under 10 seconds with orjson
+
 ## Data Notes
 - Time controls prefer chess.com `time_class` when present; otherwise derived from `TimeControl` using chess.com thresholds (daily if correspondence, bullet/blitz/rapid/classical by total time; 10+0 is rapid). Raw `TimeControl` is stored as `time_control_raw` for exact matching.
 - Dates prefer PGN `EndDate` when present (fallback to `UTCDate`/`Date`).
-- Imports run parallel per-month and dedupe by `game_id` before writing.
+- Imports run parallel per-month and per-game with deduplication by `game_id` before writing.
 - Eval lookups cache Lichess cloud-eval responses per FEN on disk with a TTL to reduce network calls and allow reuse.
 
-## Contributing
-PRs welcome. Ideas: strict time-control matching (e.g., exact 10+0), local PGN import, tests for filters/parsing, richer stats output.
+## Project Structure
+```
+├── chess_explorer/        # Python package
+│   ├── import_games.py   # Chess.com API import with parallel processing
+│   ├── filter_games.py   # Game filtering and trie building
+│   ├── trie.py           # Move tree data structure
+│   ├── explore_trie.py   # Terminal UI explorer
+│   ├── top_positions.py  # Position analysis
+│   └── storage.py        # JSON persistence with orjson support
+├── frontend/             # Web UI (vanilla JS + chessboard.js)
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── serve_frontend.py     # Development web server
+├── games/                # Player data (.json files)
+├── examples/             # Sample datasets
+└── tests/                # Test suite
+```
 
-Run tests locally:
+**Console scripts** (via `pip install -e .`):
+- `chess-explore-import` - Import games from chess.com
+- `chess-explore-import-pgn` - Import local PGN files
+- `chess-explore-explore` - Interactive terminal explorer
+- `chess-explore-top` - Analyze top positions
+- `chess-explore-players` - List available players
+
+**Data storage:**
+- Default: `games/<player>.json` (one file per player)
+- Legacy: `games.json` (single file, still supported)
+- Format: `{"version": 1, "games": [...]}`
+
+## Development & Benchmarking
+
+**Run tests:**
 ```bash
 pip install -e .[dev]
 pytest
 ```
 
-## Layout
-- `chess_explorer/` package with `import_games.py`, `filter_games.py`, `trie.py`, `explore_trie.py`, `top_positions.py`, and shared constants.
-- Console scripts via `pip install -e .`: `chess-explore-import`, `chess-explore-explore`, `chess-explore-top`.
-- Default data files live under `games/<player>.json`; legacy `games.json` is still supported for single-player setups.
-- Examples: `examples/sample_games.json` is a tiny dataset used by tests and CLI demos.
+**Benchmark trie building performance:**
+```bash
+python benchmark_trie.py your_username
+```
+Shows detailed breakdown of JSON parsing vs trie construction time.
+
+**Contributing:**
+PRs welcome! Ideas: advanced time-control matching, additional frontend features, expanded test coverage, richer statistics.
 
 ## License
 MIT. See [LICENSE](LICENSE).

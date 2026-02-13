@@ -17,22 +17,125 @@
     <section class="panel board-panel">
       <div id="board" class="board"></div>
       <div class="controls">
-        <button id="toStartBtn" type="button" title="Go to start">«</button>
-        <button id="prevBtn" type="button" title="Previous move">‹</button>
-        <button id="nextBtn" type="button" title="Next move">›</button>
-        <button id="toEndBtn" type="button" title="Go to end">»</button>
+        <button id="toStartBtn" type="button" title="Go to start">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 13L6 8L11 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 3L5 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button id="prevBtn" type="button" title="Previous move">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 13L5 8L10 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="nextBtn" type="button" title="Next move">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 13L11 8L6 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="toEndBtn" type="button" title="Go to end">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 13L10 8L5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 3L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
-      <div class="path" id="pathTrail"></div>
       <div class="status" id="statusText">Loading…</div>
     </section>
 
     <section class="panel side">
-      <div class="collapsible-bar">
+      <div class="action-bar">
         <button id="importToggle" type="button">Import</button>
-        <button id="filterToggle" type="button">Filters</button>
+        <button id="filterToggle" type="button" class="icon-btn" title="Filters">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="4" width="16" height="2" fill="currentColor"/>
+            <rect x="2" y="9" width="16" height="2" fill="currentColor"/>
+            <rect x="2" y="14" width="16" height="2" fill="currentColor"/>
+          </svg>
+        </button>
+        <div id="filterOverlay" class="overlay hidden">
+          <div class="overlay-content">
+            <div class="overlay-header">
+              <h2>Filters</h2>
+              <button id="closeFilterOverlay" type="button" class="close-btn">&times;</button>
+            </div>
+            <div class="filters">
+              <div class="filter-row full-width">
+                <label for="playerSelectBtn">Players</label>
+                <div class="player-input-group">
+                  <button id="playerSelectBtn" type="button" class="player-select-btn">
+                    <span id="playerSelectLabel">Select players</span>
+                    <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div id="playerDropdown" class="player-dropdown hidden">
+                    <div class="player-dropdown-content">
+                      <div class="player-option">
+                        <label>
+                          <input type="checkbox" value="__all__" id="allPlayersCheckbox" />
+                          <span>All players</span>
+                        </label>
+                      </div>
+                      <div id="playerCheckboxList"></div>
+                    </div>
+                  </div>
+                  <button id="refreshPlayers" type="button" class="refresh-btn" title="Refresh players">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84838 2 11.5055 2.87154 12.6 4.2M12.6 4.2V1M12.6 4.2H9.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="filter-row">
+                <label for="color">Color</label>
+                <select id="color">
+                  <option value="white" selected>White</option>
+                  <option value="black">Black</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label for="result">Result</label>
+                <select id="result">
+                  <option value="">Any</option>
+                  <option value="1-0">1-0</option>
+                  <option value="0-1">0-1</option>
+                  <option value="1/2-1/2">Draw</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label for="timeControl">Time control</label>
+                <select id="timeControl">
+                  <option value="">Any</option>
+                  <option value="bullet">Bullet</option>
+                  <option value="blitz">Blitz</option>
+                  <option value="rapid">Rapid</option>
+                  <option value="classical">Classical</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label for="minOppRating">Opponent rating</label>
+                <div class="dual">
+                  <input id="minOppRating" type="number" placeholder="Min" />
+                  <input id="maxOppRating" type="number" placeholder="Max" />
+                </div>
+              </div>
+              <div class="filter-row full-width">
+                <label for="dateFrom">Date range</label>
+                <div class="dual">
+                  <input id="dateFrom" type="date" />
+                  <input id="dateTo" type="date" />
+                </div>
+              </div>
+              <div class="filter-row full-width actions">
+                <button id="applyFilters" type="button">Apply filters</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div id="importPanel" class="collapsible-body">
+      <div id="importPanel" class="collapsible-body hidden">
         <div class="filter-row">
           <label for="importUsername">Chess.com username</label>
           <input id="importUsername" type="text" placeholder="e.g. hikaru" />
@@ -43,63 +146,7 @@
         <div id="importStatus"></div>
       </div>
 
-      <div id="filterPanel" class="collapsible-body">
-        <div class="filters">
-          <div class="filter-row">
-            <label for="playerSelect">Player store</label>
-            <div class="dual">
-              <select id="playerSelect"></select>
-              <input id="playerInput" type="text" placeholder="New player name" />
-            </div>
-            <button id="refreshPlayers" type="button">Refresh players</button>
-          </div>
-          <div class="filter-row">
-            <label for="color">Color</label>
-            <select id="color">
-              <option value="white" selected>White</option>
-              <option value="black">Black</option>
-            </select>
-          </div>
-          <div class="filter-row">
-            <label for="result">Result</label>
-            <select id="result">
-              <option value="">Any</option>
-              <option value="1-0">1-0</option>
-              <option value="0-1">0-1</option>
-              <option value="1/2-1/2">1/2-1/2</option>
-            </select>
-          </div>
-          <div class="filter-row">
-            <label for="timeControl">Time control</label>
-            <select id="timeControl">
-              <option value="">Any</option>
-              <option value="bullet">Bullet</option>
-              <option value="blitz">Blitz</option>
-              <option value="rapid">Rapid</option>
-              <option value="classical">Classical</option>
-            </select>
-          </div>
-          <div class="filter-row">
-            <label for="dateFrom">Date range</label>
-            <div class="dual">
-              <input id="dateFrom" type="date" />
-              <input id="dateTo" type="date" />
-            </div>
-          </div>
-          <div class="filter-row">
-            <label for="minOppRating">Opponent rating</label>
-            <div class="dual">
-              <input id="minOppRating" type="number" placeholder="Min" />
-              <input id="maxOppRating" type="number" placeholder="Max" />
-            </div>
-          </div>
-          <div class="filter-row actions">
-            <button id="applyFilters" type="button">Apply filters</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="stats" id="stats"></div>
+      <div class="path" id="pathTrail"></div>
       <div class="next-moves">
         <div class="section-title">Next moves</div>
         <div id="nextMoves"></div>

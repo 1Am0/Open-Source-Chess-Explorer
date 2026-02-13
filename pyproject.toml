@@ -35,6 +35,9 @@ dev = [
   "ruff>=0.6",
   "black>=23.0",
 ]
+perf = [
+  "orjson>=3.9",
+]
 
 [tool.ruff]
 line-length = 100

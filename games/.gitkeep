@@ -1,0 +1,2 @@
+# This file ensures the games directory is tracked by git
+# Player JSON files are gitignored to avoid committing personal game data

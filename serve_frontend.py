@@ -28,39 +28,68 @@ class GameCache:
     def __init__(self, games_dir: Path, legacy_path: Path | None) -> None:
         self.games_dir = games_dir
         self.legacy_path = legacy_path if legacy_path and legacy_path.exists() else None
-        self._mtimes: Dict[str, float | None] = {}
+        self._mtimes: Dict[str, Tuple | None] = {}
         self._games: Dict[str, List[Dict]] = {}
         self._tries_cache: Dict[Tuple[str, Tuple], Tuple[Dict[str, Trie], Dict[str, int], List[Dict]]] = {}
 
-    def _player_key_and_path(self, player: str | None) -> Tuple[str, Path | None]:
-        if player:
-            return player, path_for_player(player, self.games_dir)
-        if self.legacy_path and self.legacy_path.exists():
-            return "default", self.legacy_path
-        players = list_players(self.games_dir)
-        if players:
-            first = players[0]
-            return first, path_for_player(first, self.games_dir)
-        return "default", None
+    def _player_key_and_path(self, players: str | List[str] | None) -> Tuple[str, List[Path]]:
+        """Return a cache key and list of paths to load games from."""
+        if players is None:
+            # Load all available players
+            all_players = list_players(self.games_dir)
+            if not all_players and self.legacy_path and self.legacy_path.exists():
+                return "default", [self.legacy_path]
+            if not all_players:
+                return "default", []
+            return "all", [path_for_player(p, self.games_dir) for p in all_players]
+        
+        # Convert single player to list
+        if isinstance(players, str):
+            players = [players]
+        
+        if not players:
+            return "default", []
+        
+        # Sort for consistent cache key
+        players_sorted = sorted(players)
+        key = "+".join(players_sorted)
+        paths = [path_for_player(p, self.games_dir) for p in players_sorted]
+        return key, paths
 
-    def _load_games_if_needed(self, player_key: str, path: Path | None) -> None:
-        if path is None or not path.exists():
+    def _load_games_if_needed(self, player_key: str, paths: List[Path]) -> None:
+        """Load games from multiple player files."""
+        if not paths:
             self._games[player_key] = []
             self._mtimes[player_key] = None
             self._tries_cache = {k: v for k, v in self._tries_cache.items() if k[0] != player_key}
             return
 
-        try:
-            mtime = path.stat().st_mtime
-        except OSError:
-            mtime = None
-
-        if self._mtimes.get(player_key) == mtime:
+        # Check mtimes of all paths
+        mtimes = []
+        for path in paths:
+            if not path.exists():
+                mtimes.append(None)
+            else:
+                try:
+                    mtimes.append(path.stat().st_mtime)
+                except OSError:
+                    mtimes.append(None)
+        
+        mtime_tuple = tuple(mtimes)
+        
+        # Check if cache is still valid
+        if self._mtimes.get(player_key) == mtime_tuple:
             return
 
-        self._games[player_key] = load_games(path)
+        # Load and merge games from all paths
+        all_games = []
+        for path in paths:
+            if path.exists():
+                all_games.extend(load_games(path))
+        
+        self._games[player_key] = all_games
         self._tries_cache = {k: v for k, v in self._tries_cache.items() if k[0] != player_key}
-        self._mtimes[player_key] = mtime
+        self._mtimes[player_key] = mtime_tuple
 
     def invalidate(self) -> None:
         self._mtimes.clear()
@@ -85,21 +114,37 @@ class GameCache:
         )
 
     def get_filtered(
-        self, filters: Dict, player: str | None
+        self, filters: Dict, players: str | List[str] | None
     ) -> Tuple[str, Dict[str, Trie], Dict[str, int], List[Dict]]:
-        player_key, path = self._player_key_and_path(player)
-        self._load_games_if_needed(player_key, path)
+        t_start = time.perf_counter()
+        player_key, paths = self._player_key_and_path(players)
+        t_key = time.perf_counter()
+        self._load_games_if_needed(player_key, paths)
+        t_load = time.perf_counter()
         key = (player_key, self._filters_key(filters))
         cached = self._tries_cache.get(key)
         if cached:
+            t_cache = time.perf_counter()
+            total_ms = (t_cache-t_start) * 1000
+            print(f"[cache] HIT for {player_key}: {total_ms:.0f}ms", flush=True)
             tries, counts, filtered = cached
             return player_key, tries, counts, filtered
 
         games = self._games.get(player_key, [])
+        t_get = time.perf_counter()
         filtered = filter_games(games, **filters)
+        t_filter = time.perf_counter()
         tries = build_color_tries(filtered)
-        counts = {color: len([g for g in filtered if g.get("color") == color]) for color in ("white", "black")}
+        t_trie = time.perf_counter()
+        
+        # Count colors while building tries to avoid extra iteration
+        white_count = tries["white"].root.totalWins + tries["white"].root.totalLosses + tries["white"].root.totalDraws
+        black_count = tries["black"].root.totalWins + tries["black"].root.totalLosses + tries["black"].root.totalDraws
+        counts = {"white": white_count, "black": black_count}
+        
         self._tries_cache[key] = (tries, counts, filtered)
+        t_done = time.perf_counter()
+        print(f"[cache] MISS {player_key}: load={(t_load-t_key)*1000:.0f}ms filter={(t_filter-t_get)*1000:.0f}ms trie={(t_trie-t_filter)*1000:.0f}ms → {(t_done-t_start)*1000:.0f}ms total ({len(games)}→{len(filtered)} games)", flush=True)
         return player_key, tries, counts, filtered
 
 
@@ -161,8 +206,8 @@ def build_response(payload: Dict, cache: GameCache) -> Dict:
     }
 
     t2 = time.perf_counter()
-    player = payload.get("player")
-    player_key, tries, counts, filtered = cache.get_filtered(filters, player)
+    players = payload.get("players") or payload.get("player")
+    player_key, tries, counts, filtered = cache.get_filtered(filters, players)
     if not filtered:
         t_done = time.perf_counter()
         duration_ms = (t_done - t0) * 1000
@@ -226,17 +271,28 @@ def handle_import(payload: Dict, cache: GameCache, games_dir: Path) -> Dict:
     player = (payload.get("player") or username).strip()
     target_path = path_for_player(player, games_dir)
 
+    print(f"[import] Starting import for {username} → {player}", flush=True)
+    t0 = time.perf_counter()
+    
     before = load_store(target_path)
     before_count = len(before.get("games", []))
+    print(f"[import] Current games: {before_count}", flush=True)
+    
     try:
         import_games(username, player=player, out_path=target_path, quiet=False)
     except Exception as exc:  # noqa: BLE001 - return message to client
+        print(f"[import] ERROR: {exc}", flush=True)
         return {"error": str(exc)}, 500
 
     cache.invalidate()
     after = load_store(target_path)
     after_count = len(after.get("games", []))
     added = max(0, after_count - before_count)
+    
+    t1 = time.perf_counter()
+    duration_ms = (t1 - t0) * 1000
+    print(f"[import] Complete: +{added} new games (total: {after_count}) in {duration_ms:.0f}ms", flush=True)
+    
     return {"imported": added, "total": after_count, "username": username, "player": player}, 200
 
 
@@ -322,6 +378,17 @@ def main() -> None:
         legacy_path = None
 
     cache = GameCache(games_dir, legacy_path)
+    
+    # Check for orjson for better performance
+    try:
+        from chess_explorer.storage import HAS_ORJSON
+        if HAS_ORJSON:
+            print("✓ Using orjson for faster JSON parsing", flush=True)
+        else:
+            print("ℹ Install orjson for faster JSON parsing: pip install orjson", flush=True)
+    except ImportError:
+        pass
+    
     handler = make_handler(front, cache, games_dir, legacy_path)
     with TCPServer(("", args.port), handler) as httpd:
         target = legacy_path if legacy_path else games_dir

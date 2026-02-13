@@ -4,6 +4,12 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    import orjson
+    HAS_ORJSON = True
+except ImportError:
+    HAS_ORJSON = False
+
 from .constants import DEFAULT_GAMES_FILE, GAMES_DIR, SCHEMA_VERSION
 
 
@@ -34,8 +40,13 @@ def resolve_store_path(player: Optional[str] = None, output: Optional[Path | str
 def load_store(path: Path) -> Dict:
     if not path.exists():
         return {"version": SCHEMA_VERSION, "games": []}
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    
+    if HAS_ORJSON:
+        data = orjson.loads(path.read_bytes())
+    else:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    
     if "version" not in data:
         data["version"] = SCHEMA_VERSION
     if "games" not in data:
@@ -45,7 +56,13 @@ def load_store(path: Path) -> Dict:
 
 def save_store(store: Dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(store, indent=4), encoding="utf-8")
+    
+    if HAS_ORJSON:
+        # orjson doesn't support indent parameter, but it's much faster
+        # Write without indentation for speed (2-3x faster than json.dumps)
+        path.write_bytes(orjson.dumps(store))
+    else:
+        path.write_text(json.dumps(store, indent=4), encoding="utf-8")
 
 
 def load_games(path: Path) -> List[Dict]:

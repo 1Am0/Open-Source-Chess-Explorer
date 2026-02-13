@@ -1,15 +1,51 @@
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.so
+.Python
+
+# Virtual environments
 .env
 .venv/
 .env*/
+venv/
+ENV/
+
+# IDEs
 .DS_Store
 .idea/
 .vscode/
+*.swp
+*.swo
+
+# Testing & Coverage
 .cache/
 .pytest_cache/
 .ruff_cache/
 .coverage
+htmlcov/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Data files
+games/*.json
+!games/.gitkeep
 eval_cache.json
+
+# Frontend
+node_modules/
+.next/
+new-frontend/.next/
+new-frontend/node_modules/
+new-frontend/.turbo/
+new-frontend/out/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

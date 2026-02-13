@@ -18,7 +18,8 @@
   const importToggle = document.getElementById('importToggle');
   const filterToggle = document.getElementById('filterToggle');
   const importPanel = document.getElementById('importPanel');
-  const filterPanel = document.getElementById('filterPanel');
+  const filterOverlay = document.getElementById('filterOverlay');
+  const closeFilterOverlay = document.getElementById('closeFilterOverlay');
 
   const colorSel = document.getElementById('color');
   const resultSel = document.getElementById('result');
@@ -27,8 +28,11 @@
   const dateToEl = document.getElementById('dateTo');
   const minOppRatingEl = document.getElementById('minOppRating');
   const maxOppRatingEl = document.getElementById('maxOppRating');
-  const playerSelect = document.getElementById('playerSelect');
-  const playerInput = document.getElementById('playerInput');
+  const playerSelectBtn = document.getElementById('playerSelectBtn');
+  const playerSelectLabel = document.getElementById('playerSelectLabel');
+  const playerDropdown = document.getElementById('playerDropdown');
+  const playerCheckboxList = document.getElementById('playerCheckboxList');
+  const allPlayersCheckbox = document.getElementById('allPlayersCheckbox');
   const refreshPlayersBtn = document.getElementById('refreshPlayers');
 
   if (typeof window.Chess === 'undefined') {
@@ -68,23 +72,49 @@
     return pathSAN.slice(0, cursor);
   }
 
+  function updatePathDisplay() {
+    if (pathSAN.length === 0) {
+      pathEl.innerHTML = '';
+      return;
+    }
+    const parts = [];
+    for (let i = 0; i < pathSAN.length; i++) {
+      const move = pathSAN[i];
+      const isCurrent = i === cursor - 1;
+      const style = isCurrent ? 'font-weight: 700; color: var(--accent);' : '';
+      
+      if (i % 2 === 0) {
+        // White move - add move number
+        const moveNum = Math.floor(i / 2) + 1;
+        parts.push(`<span style="${style}">${moveNum}. ${move}</span>`);
+      } else {
+        // Black move - no number, just the move
+        parts.push(`<span style="${style}">${move}</span>`);
+      }
+    }
+    pathEl.innerHTML = parts.join(' ');
+  }
+
   function rebuildPosition() {
     chess.reset();
     const seq = currentPath();
     seq.forEach((san) => chess.move(san));
     board.position(chess.fen(), false);
-    pathEl.textContent = seq.join(' ');
+    updatePathDisplay();
   }
 
   function selectedPlayer() {
-    const custom = playerInput.value.trim();
-    if (custom) return custom;
-    return playerSelect.value || null;
+    if (allPlayersCheckbox?.checked) return null;
+    
+    const selected = Array.from(playerCheckboxList?.querySelectorAll('input[type="checkbox"]:checked') || [])
+      .map(cb => cb.value);
+    
+    return selected.length > 0 ? selected : null;
   }
 
   function gatherFilters() {
     const payload = {
-      player: selectedPlayer(),
+      players: selectedPlayer(),
       color: colorSel.value || 'white',
       result: resultSel.value || null,
       time_control: timeSel.value || null,
@@ -104,23 +134,37 @@
       if (!res.ok) throw new Error(`Failed to load players (${res.status})`);
       const data = await res.json();
       loadedPlayers = data.players || [];
-      const previous = playerSelect.value;
-      playerSelect.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = loadedPlayers.length ? 'Select player' : 'No players yet';
-      playerSelect.appendChild(placeholder);
+      
+      const currentSelected = Array.from(playerCheckboxList?.querySelectorAll('input[type="checkbox"]:checked') || [])
+        .map(cb => cb.value);
+      
+      playerCheckboxList.innerHTML = '';
+      
       loadedPlayers.forEach((p) => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        playerSelect.appendChild(opt);
+        const div = document.createElement('div');
+        div.className = 'player-option';
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = p;
+        checkbox.checked = currentSelected.includes(p);
+        checkbox.addEventListener('change', handlePlayerCheckboxChange);
+        const span = document.createElement('span');
+        span.textContent = p;
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        div.appendChild(label);
+        playerCheckboxList.appendChild(div);
       });
-      if (playerInput.value.trim()) return;
-      if (loadedPlayers.includes(previous)) {
-        playerSelect.value = previous;
-      } else if (loadedPlayers.length) {
-        playerSelect.value = loadedPlayers[0];
+      
+      if (currentSelected.length === 0 && loadedPlayers.length > 0) {
+        const firstCheckbox = playerCheckboxList.querySelector('input[type="checkbox"]');
+        if (firstCheckbox) {
+          firstCheckbox.checked = true;
+          updatePlayerLabel();
+        }
+      } else {
+        updatePlayerLabel();
       }
     } catch (err) {
       console.error(err);
@@ -132,6 +176,7 @@
     const payload = lastPayload || gatherFilters();
     payload.path = currentPath();
     statusEl.textContent = 'Loading…';
+    statusEl.className = 'status loading';
     try {
       const res = await fetch('/api/next-moves', {
         method: 'POST',
@@ -144,6 +189,7 @@
     } catch (err) {
       console.error(err);
       statusEl.textContent = 'Backend unavailable — ensure serve_frontend.py is running.';
+      statusEl.className = 'status';
     }
   }
 
@@ -155,21 +201,12 @@
     }
     pathSAN.push(move.san);
     cursor = pathSAN.length;
-    pathEl.textContent = currentPath().join(' ');
+    updatePathDisplay();
     fetchNextMoves();
   }
 
   function updateStats(stats, totalGames) {
-    if (!stats || !totalGames) {
-      statsEl.innerHTML = '<strong>0 games</strong> match these filters.';
-      return;
-    }
-    const { wins = 0, draws = 0, losses = 0, total = 0, winRate = 0, drawRate = 0, lossRate = 0 } = stats;
-    statsEl.innerHTML = `
-      <div><strong>${totalGames}</strong> games after filtering</div>
-      <div>Current node: <strong>${total}</strong> games</div>
-      <div>W ${wins} (${(winRate * 100).toFixed(1)}%) · D ${draws} (${(drawRate * 100).toFixed(1)}%) · L ${losses} (${(lossRate * 100).toFixed(1)}%)</div>
-    `;
+    // Stats display removed - path is shown in pathTrail div
   }
 
   function applyMoveFromCard(moveSAN) {
@@ -184,7 +221,7 @@
     pathSAN.push(moveSAN);
     cursor = pathSAN.length;
     board.position(chess.fen(), false);
-    pathEl.textContent = currentPath().join(' ');
+    updatePathDisplay();
     fetchNextMoves();
   }
 
@@ -205,12 +242,13 @@
       const drawRate = total ? (draws / total) * 100 : 0;
       const lossRate = total ? (losses / total) * 100 : 0;
       const segments = [];
-      if (winRate > 0) segments.push(`<div class="result-segment result-win" style="width:${winRate}%;" title="${winRate.toFixed(0)}% wins">${winRate >= 10 ? winRate.toFixed(0) + '%' : ''}</div>`);
-      if (drawRate > 0) segments.push(`<div class="result-segment result-draw" style="width:${drawRate}%;" title="${drawRate.toFixed(0)}% draws">${drawRate >= 10 ? drawRate.toFixed(0) + '%' : ''}</div>`);
-      if (lossRate > 0) segments.push(`<div class="result-segment result-loss" style="width:${lossRate}%;" title="${lossRate.toFixed(0)}% losses">${lossRate >= 10 ? lossRate.toFixed(0) + '%' : ''}</div>`);
+      if (winRate > 0) segments.push(`<div class="result-segment result-win" style="width:${winRate}%;" title="${wins} white">${winRate >= 8 ? winRate.toFixed(0) + '%' : ''}</div>`);
+      if (drawRate > 0) segments.push(`<div class="result-segment result-draw" style="width:${drawRate}%;" title="${draws} draw">${drawRate >= 8 ? drawRate.toFixed(0) + '%' : ''}</div>`);
+      if (lossRate > 0) segments.push(`<div class="result-segment result-loss" style="width:${lossRate}%;" title="${losses} black">${lossRate >= 8 ? lossRate.toFixed(0) + '%' : ''}</div>`);
       card.innerHTML = `
         <div class="move-row">
           <div class="move">${item.move}</div>
+          <div class="move-count">${total}</div>
           <div class="result-bar">${segments.join('')}</div>
         </div>
       `;
@@ -221,8 +259,9 @@
 
   function updateUI(data) {
     if (!data) return;
-    pathEl.textContent = currentPath().join(' ');
+    updatePathDisplay();
     statusEl.textContent = data.games ? `${data.games} games match filters` : 'No games for these filters';
+    statusEl.className = 'status';
     updateStats(data.stats, data.games);
     updateNextMoves(data.next);
   }
@@ -239,7 +278,7 @@
     pathSAN = [];
     cursor = 0;
     board.start();
-    pathEl.textContent = '';
+    updatePathDisplay();
     fetchNextMoves();
   }
 
@@ -268,62 +307,92 @@
 
   async function importGames() {
     const username = importUsernameEl.value.trim();
-    const customPlayer = playerInput.value.trim();
-    const selected = playerSelect.value;
-    let player = null;
-    if (customPlayer) {
-      player = customPlayer;
-    } else if (selected && selected === username) {
-      player = selected;
-    } else if (!selected) {
-      player = username; // no selection, default to username
-    } else {
-      // selected player differs from typed username; default to username to avoid mixing
-      player = username;
-    }
     if (!username) {
       importStatusEl.textContent = 'Enter a username.';
       return;
     }
     importStatusEl.textContent = 'Importing…';
+    importStatusEl.className = 'status loading';
     try {
       const res = await fetch('/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, player }),
+        body: JSON.stringify({ username, player: username }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
         importStatusEl.textContent = data.error || `Failed (${res.status})`;
+        importStatusEl.className = 'status';
         return;
       }
       importStatusEl.textContent = `Imported ${data.imported} new (total ${data.total}).`;
+      importStatusEl.className = 'status';
       // Refresh filters/trie after import
       pathSAN = [];
       cursor = 0;
       chess.reset();
       board.start();
-      pathEl.textContent = '';
-      playerInput.value = '';
+      updatePathDisplay();
       await fetchPlayers();
-      if (playerSelect && player) {
-        playerSelect.value = player;
-      }
       fetchNextMoves();
     } catch (err) {
       importStatusEl.textContent = 'Import failed (network).';
+      importStatusEl.className = 'status';
       console.error(err);
     }
   }
 
-  applyBtn.addEventListener('click', () => {
+  function updatePlayerLabel() {
+    if (!playerSelectLabel) return;
+    
+    if (allPlayersCheckbox?.checked) {
+      playerSelectLabel.textContent = 'All players';
+      return;
+    }
+    
+    const selected = Array.from(playerCheckboxList?.querySelectorAll('input[type="checkbox"]:checked') || []);
+    
+    if (selected.length === 0) {
+      playerSelectLabel.textContent = 'Select players';
+    } else if (selected.length === 1) {
+      playerSelectLabel.textContent = selected[0].value;
+    } else {
+      playerSelectLabel.textContent = `${selected.length} players selected`;
+    }
+  }
+
+  function handlePlayerCheckboxChange(e) {
+    const checkbox = e.target;
+    
+    if (checkbox === allPlayersCheckbox) {
+      if (allPlayersCheckbox.checked) {
+        // Uncheck all individual players
+        playerCheckboxList?.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+        });
+      }
+    } else {
+      // If any individual player is checked, uncheck "All players"
+      if (checkbox.checked && allPlayersCheckbox) {
+        allPlayersCheckbox.checked = false;
+      }
+    }
+    
+    updatePlayerLabel();
+    
     pathSAN = [];
     cursor = 0;
     chess.reset();
     board.start();
-    pathEl.textContent = '';
+    updatePathDisplay();
+    lastPayload = null;
+    fetchNextMoves();
+  }
+
+  applyBtn.addEventListener('click', () => {
     gatherFilters();
     fetchNextMoves();
+    filterOverlay.classList.add('hidden');
   });
 
   refreshPlayersBtn?.addEventListener('click', async () => {
@@ -332,20 +401,34 @@
     cursor = 0;
     chess.reset();
     board.start();
-    pathEl.textContent = '';
+    updatePathDisplay();
     lastPayload = null;
     fetchNextMoves();
   });
 
-  playerSelect?.addEventListener('change', () => {
-    playerInput.value = '';
-    pathSAN = [];
-    cursor = 0;
-    chess.reset();
-    board.start();
-    pathEl.textContent = '';
-    lastPayload = null;
-    fetchNextMoves();
+  // Player dropdown button toggle
+  playerSelectBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    playerDropdown?.classList.toggle('hidden');
+    playerSelectBtn?.classList.toggle('open');
+  });
+
+  // All players checkbox
+  allPlayersCheckbox?.addEventListener('change', handlePlayerCheckboxChange);
+
+  // Prevent dropdown from closing when clicking inside it
+  playerDropdown?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!playerDropdown?.contains(e.target) && 
+        e.target !== playerSelectBtn && 
+        !playerSelectBtn?.contains(e.target)) {
+      playerDropdown?.classList.add('hidden');
+      playerSelectBtn?.classList.remove('open');
+    }
   });
 
   toStartBtn?.addEventListener('click', jumpToStart);
@@ -354,10 +437,27 @@
   toEndBtn?.addEventListener('click', jumpToEnd);
   importBtn?.addEventListener('click', importGames);
   importToggle?.addEventListener('click', () => togglePanel(importPanel));
-  filterToggle?.addEventListener('click', () => togglePanel(filterPanel));
+  filterToggle?.addEventListener('click', () => filterOverlay.classList.toggle('hidden'));
+  closeFilterOverlay?.addEventListener('click', () => filterOverlay.classList.add('hidden'));
+  
+  // Close filter overlay when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!filterOverlay.classList.contains('hidden') && 
+        !filterOverlay.contains(e.target) && 
+        e.target !== filterToggle && 
+        !filterToggle.contains(e.target)) {
+      filterOverlay.classList.add('hidden');
+    }
+  });
 
   // Arrow key navigation for chess moves
   document.addEventListener('keydown', (e) => {
+    // Close filter overlay on Escape
+    if (e.key === 'Escape' && !filterOverlay.classList.contains('hidden')) {
+      filterOverlay.classList.add('hidden');
+      return;
+    }
+    
     // Ignore if user is typing in an input field
     const tagName = e.target.tagName.toLowerCase();
     if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') return;
