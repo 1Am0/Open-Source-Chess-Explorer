@@ -32,6 +32,7 @@ htmlcov/
 dist/
 build/
 *.spec.backup
+*.zip
 # Keep ChessExplorer.spec - it's needed for building
 !ChessExplorer.spec
 
