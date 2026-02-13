@@ -12,6 +12,7 @@
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   const toEndBtn = document.getElementById('toEndBtn');
+  const flipBtn = document.getElementById('flipBtn');
   const importBtn = document.getElementById('importBtn');
   const importStatusEl = document.getElementById('importStatus');
   const importUsernameEl = document.getElementById('importUsername');
@@ -74,7 +75,7 @@
 
   function updatePathDisplay() {
     if (pathSAN.length === 0) {
-      pathEl.innerHTML = '';
+      pathEl.innerHTML = '<span style="color: var(--text-secondary); font-style: italic;">Starting Position</span>';
       return;
     }
     const parts = [];
@@ -435,6 +436,7 @@
   prevBtn?.addEventListener('click', undoMove);
   nextBtn?.addEventListener('click', redoMove);
   toEndBtn?.addEventListener('click', jumpToEnd);
+  flipBtn?.addEventListener('click', () => board.flip());
   importBtn?.addEventListener('click', importGames);
   importToggle?.addEventListener('click', () => togglePanel(importPanel));
   filterToggle?.addEventListener('click', () => filterOverlay.classList.toggle('hidden'));
@@ -478,6 +480,11 @@
       case 'ArrowDown':
         e.preventDefault();
         jumpToEnd();
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        board.flip();
         break;
     }
   });

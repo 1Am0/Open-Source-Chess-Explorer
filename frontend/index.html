@@ -17,26 +17,33 @@
     <section class="panel board-panel">
       <div id="board" class="board"></div>
       <div class="controls">
-        <button id="toStartBtn" type="button" title="Go to start">
+        <button id="toStartBtn" type="button" title="Go to start (↑)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M11 13L6 8L11 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M5 3L5 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
-        <button id="prevBtn" type="button" title="Previous move">
+        <button id="prevBtn" type="button" title="Previous move (←)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10 13L5 8L10 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button id="nextBtn" type="button" title="Next move">
+        <button id="nextBtn" type="button" title="Next move (→)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 13L11 8L6 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button id="toEndBtn" type="button" title="Go to end">
+        <button id="toEndBtn" type="button" title="Go to end (↓)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M5 13L10 8L5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M11 3L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="divider"></div>
+        <button id="flipBtn" type="button" title="Flip board (F)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 2V14M8 14L4 10M8 14L12 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 14V2M8 2L12 6M8 2L4 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
           </svg>
         </button>
       </div>

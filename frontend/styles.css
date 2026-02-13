@@ -139,6 +139,13 @@ header.shell {
 .controls button:hover { border-color: var(--accent); background: rgba(255, 255, 255, 0.12); transform: translateY(-1px); }
 .controls button:active { transform: translateY(0); }
 
+.controls .divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
 .status {
   display: flex;
   align-items: center;
