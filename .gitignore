@@ -31,8 +31,9 @@ htmlcov/
 *.egg-info/
 dist/
 build/
-*.spec
 *.spec.backup
+# Keep ChessExplorer.spec - it's needed for building
+!ChessExplorer.spec
 
 # Data files
 games/*.json
