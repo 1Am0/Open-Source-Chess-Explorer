@@ -52,6 +52,8 @@ Code lives under the package `chess_explorer/` with installable CLI entry points
 **Web UI Features:**
 - Drag and drop pieces on an interactive board
 - Click moves to jump to positions
+- Flip board to view from either perspective (button or press F)
+- Keyboard shortcuts: Arrow keys for navigation, F to flip board
 - Filter by player, color, result, time control, rating, dates
 - Import new players directly from the UI
 - Numbered move history with current position highlight
