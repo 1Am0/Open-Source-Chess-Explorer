@@ -31,6 +31,8 @@ htmlcov/
 *.egg-info/
 dist/
 build/
+*.spec
+*.spec.backup
 
 # Data files
 games/*.json

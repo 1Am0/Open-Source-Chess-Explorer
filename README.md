@@ -21,7 +21,17 @@ Code lives under the package `chess_explorer/` with installable CLI entry points
 
 ## Quick Start
 
-### Web UI (Recommended)
+### 💻 Windows Executable (Easiest!)
+
+**For non-technical users on Windows:**
+1. Download the latest `ChessExplorer.zip` from [Releases](https://github.com/yourusername/Open-Source-Chess-Explorer/releases)
+2. Extract the zip file
+3. Double-click `ChessExplorer.exe`
+4. Your browser opens automatically - start importing games!
+
+No Python installation required! See `README.txt` in the download for detailed instructions.
+
+### Web UI (For Developers)
 1) Create and activate a virtual env:
    ```bash
    python -m venv .venv
@@ -125,6 +135,23 @@ The application automatically detects and uses it when available.
 - Imports run parallel per-month and per-game with deduplication by `game_id` before writing.
 - Eval lookups cache Lichess cloud-eval responses per FEN on disk with a TTL to reduce network calls and allow reuse.
 
+## Building Windows Executable
+
+To create a standalone Windows executable:
+
+```bash
+pip install pyinstaller
+build_exe.bat
+```
+
+This creates `dist/ChessExplorer_Release/ChessExplorer.exe` with all dependencies bundled. Users can double-click to launch - no Python required!
+
+The executable:
+- Auto-opens browser to http://localhost:8000
+- Includes all frontend files and Python dependencies
+- Stores games in `games/` folder next to the .exe
+- ~30-40 MB download size (zipped)
+
 ## Project Structure
 ```
 ├── chess_explorer/        # Python package
@@ -155,6 +182,23 @@ The application automatically detects and uses it when available.
 - Default: `games/<player>.json` (one file per player)
 - Legacy: `games.json` (single file, still supported)
 - Format: `{"version": 1, "games": [...]}`
+
+## Building Windows Executable
+
+To create a standalone Windows executable:
+
+```bash
+pip install pyinstaller
+build_exe.bat
+```
+
+This creates `dist/ChessExplorer_Release/ChessExplorer.exe` with all dependencies bundled. Users can double-click to launch - no Python required!
+
+The executable:
+- Auto-opens browser to http://localhost:8000
+- Includes all frontend files and Python dependencies
+- Stores games in `games/` folder next to the .exe
+- ~30-40 MB download size (zipped)
 
 ## Development & Benchmarking
 
