@@ -6,11 +6,12 @@ Code lives under the package `chess_explorer/` with installable CLI entry points
 
 ## Features
 - 🌐 **Modern Web UI** - Interactive board with drag-and-drop moves, real-time statistics, and advanced filtering
-- 📥 **Chess.com Import** - Fetch all your games with parallel processing and progress tracking
-- 🎯 **Multi-Player Support** - Select and merge games from multiple players
-- ⚡ **Performance Optimized** - Parallel parsing, orjson support, and smart caching for instant responses
+- � **Opening Recognition** - Automatic opening detection with ECO codes from comprehensive Lichess database (3,800+ openings)
+- 📥 **Chess.com & Lichess Import** - Fetch all your games from both platforms with parallel processing and progress tracking
+- 🎯 **Multi-Player Support** - Select and merge games from multiple players with quick-access toolbar
+- ⚡ **Performance Optimized** - Parallel parsing, orjson support, smart caching, and debounced navigation for instant responses
 - 🔍 **Advanced Filters** - Color, result, opponent, time control, rating ranges, date ranges
-- 📊 **Move Statistics** - Win/draw/loss breakdown per move with game counts
+- 📊 **Move Statistics** - Win/draw/loss breakdown per move with visual percentage bars
 - 🎮 **Interactive Terminal** - Browse openings in your terminal with keyboard navigation
 - 📝 **Local PGN Import** - Import your own PGN files into the same JSON schema
 
@@ -58,31 +59,47 @@ No Python installation required! See `README.txt` in the download for detailed i
    python serve_frontend.py --port 8000 --games-dir games
    ```
    Open http://localhost:8000 in your browser!
+   
+   The UI automatically loads the comprehensive Lichess opening database (3,800+ openings) and displays:
+   - Current opening name and ECO code as you play/navigate moves
+   - Player selector in the main toolbar for quick switching
+   - Advanced filter panel with all criteria
+   - Visual statistics with color-coded win/draw/loss bars
 
 **Web UI Features:**
-- Drag and drop pieces on an interactive board
-- Click moves to jump to positions
-- Flip board to view from either perspective (button or press F)
-- Keyboard shortcuts: Arrow keys for navigation, F to flip board
-- Filter by player, color, result, time control, rating, dates
-- Import new players directly from the UI
-- Numbered move history with current position highlight
-- Real-time win/draw/loss statistics for each move
-- Smart caching - instant after first load
+- **Opening Recognition** - Automatic opening detection with names and ECO codes from comprehensive Lichess database (3,800+ openings)
+- **Interactive Board** - Drag and drop pieces on a responsive chessboard
+- **Smart Navigation** - Click moves to jump to positions, debounced loading for smooth rapid navigation
+- **Player Selection** - Quick-access player selector with refresh button in main toolbar
+- **Advanced Filters** - Filter by player, color, result, time control, opponent rating, date ranges
+- **Visual Statistics** - Real-time win/draw/loss percentage bars for each candidate move
+- **Keyboard Shortcuts** - Arrow keys for navigation, F to flip board, Escape to close overlays
+- **Move History** - Numbered move notation with current position highlighting
+- **Board Controls** - Flip board view, jump to start/end, step through moves
+- **Performance Optimized** - Smart caching for instant loads, debounced API calls during rapid navigation
 
 ### Command Line Tools
 
-Import games (fetches all archives, shows progress):
+Import games from Chess.com (fetches all archives, shows progress):
    ```bash
    chess-explore-import your_chesscom_username --player your_chesscom_username
    ```
    - By default stores data in `games/<player>.json`; `--output` overrides that.
    - Stores chess.com `time_class` when present and the raw `TimeControl` as `time_control_raw`.
    - Add `--quiet` to suppress progress and summary output.
-    - To import local PGNs instead of chess.com archives:
-       ```bash
-       chess-explore-import-pgn your_username path/to/file_or_dir.pgn --player your_username
-       ```
+
+Import games from Lichess:
+   ```bash
+   chess-explore-import-lichess your_lichess_username --player your_username
+   ```
+   - Streams games directly from Lichess API with automatic duplicate detection
+   - Optional filters: `--max 100`, `--rated`, `--perf-type blitz`
+   - Stores in `games/lichess/<player>.json` by default
+
+To import local PGN files:
+   ```bash
+   chess-explore-import-pgn your_username path/to/file_or_dir.pgn --player your_username
+   ```
 4) Explore filtered games interactively:
    ```bash
    chess-explore-explore --player your_chesscom_username --color white --time-control blitz --date-from 2025-11-30 --top 15
@@ -148,6 +165,7 @@ This creates `dist/ChessExplorer_Release/ChessExplorer.exe` with all dependencie
 
 The executable:
 - Auto-opens browser to http://localhost:8000
+- Includes comprehensive opening recognition (3,800+ openings with ECO codes)
 - Includes all frontend files and Python dependencies
 - Stores games in `games/` folder next to the .exe
 - ~30-40 MB download size (zipped)
@@ -162,9 +180,9 @@ The executable:
 │   ├── top_positions.py  # Position analysis
 │   └── storage.py        # JSON persistence with orjson support
 ├── frontend/             # Web UI (vanilla JS + chessboard.js)
-│   ├── index.html
-│   ├── app.js
-│   └── styles.css
+│   ├── index.html       # Main UI with player selector and filters
+│   ├── app.js           # Opening recognition, navigation, and API logic
+│   └── styles.css       # Modern dark theme with visual statistics
 ├── serve_frontend.py     # Development web server
 ├── games/                # Player data (.json files)
 ├── examples/             # Sample datasets
@@ -172,7 +190,8 @@ The executable:
 ```
 
 **Console scripts** (via `pip install -e .`):
-- `chess-explore-import` - Import games from chess.com
+- `chess-explore-import` - Import games from Chess.com
+- `chess-explore-import-lichess` - Import games from Lichess
 - `chess-explore-import-pgn` - Import local PGN files
 - `chess-explore-explore` - Interactive terminal explorer
 - `chess-explore-top` - Analyze top positions
@@ -182,30 +201,20 @@ The executable:
 - Default: `games/<player>.json` (one file per player)
 - Legacy: `games.json` (single file, still supported)
 - Format: `{"version": 1, "games": [...]}`
-
-## Building Windows Executable
-
-To create a standalone Windows executable:
-
-```bash
-pip install pyinstaller
-build_exe.bat
-```
-
-This creates `dist/ChessExplorer_Release/ChessExplorer.exe` with all dependencies bundled. Users can double-click to launch - no Python required!
-
-The executable:
-- Auto-opens browser to http://localhost:8000
-- Includes all frontend files and Python dependencies
-- Stores games in `games/` folder next to the .exe
-- ~30-40 MB download size (zipped)
-
-## Development & Benchmarking
+Testing
 
 **Run tests:**
 ```bash
 pip install -e .[dev]
 pytest
+```
+
+Test coverage includes:
+- CLI smoke tests for all import and explore commands
+- PGN import validation and error handling
+- Lichess API import with mocked streaming responses
+- Filter and trie building logic
+- Duplicate detection and game mergingest
 ```
 
 **Benchmark trie building performance:**
