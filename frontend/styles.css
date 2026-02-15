@@ -121,7 +121,7 @@ header.shell {
   border: 1px solid var(--border);
   background: var(--accent-soft);
   color: var(--text);
-  padding: 10px 20px;
+  padding: 6px 20px;
   min-width: 44px;
   border-radius: 10px;
   cursor: pointer;
@@ -170,6 +170,34 @@ header.shell {
   to { transform: rotate(360deg); }
 }
 
+.opening-display {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.opening-display.visible {
+  opacity: 1;
+}
+
+.opening-display .eco-code {
+  color: var(--sub);
+  font-weight: 500;
+  font-size: 13px;
+  margin-left: 8px;
+}
+
 .path {
   background: rgba(255, 255, 255, 0.04);
   border: 1px dashed var(--border);
@@ -199,6 +227,10 @@ header.shell {
   position: relative;
 }
 
+.action-bar .player-input-group {
+  flex: 1;
+}
+
 .action-bar button {
   border: 1px solid var(--border);
   background: var(--accent-soft);
@@ -207,10 +239,6 @@ header.shell {
   border-radius: 10px;
   cursor: pointer;
   transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
-}
-
-.action-bar button:first-child {
-  flex: 1;
 }
 
 .action-bar button.icon-btn {
@@ -345,6 +373,14 @@ header.shell {
 
 .dual { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
+.import-hint {
+  font-size: 12px;
+  color: var(--sub);
+  margin: 0;
+  padding: 4px 0;
+  line-height: 1.4;
+}
+
 .player-input-group {
   display: flex;
   gap: 6px;
@@ -401,32 +437,39 @@ header.shell {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  max-height: 280px;
+  max-height: 340px;
+}
+
+.player-dropdown:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-dropdown-content {
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  padding: 6px;
   scrollbar-width: thin;
   scrollbar-color: #5a5a5a #0f0f0f;
 }
 
-.player-dropdown::-webkit-scrollbar {
+.player-dropdown-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.player-dropdown::-webkit-scrollbar-track {
+.player-dropdown-content::-webkit-scrollbar-track {
   background: #0f0f0f;
   border-radius: 10px;
 }
 
-.player-dropdown::-webkit-scrollbar-thumb {
+.player-dropdown-content::-webkit-scrollbar-thumb {
   background: #2a2a2a;
   border-radius: 10px;
 }
 
-.player-dropdown::-webkit-scrollbar-thumb:hover {
+.player-dropdown-content::-webkit-scrollbar-thumb:hover {
   background: #3a3a3a;
-}
-
-.player-dropdown-content {
-  padding: 6px;
 }
 
 .player-option {
@@ -435,7 +478,8 @@ header.shell {
 }
 
 .player-option label {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
@@ -446,6 +490,32 @@ header.shell {
   color: var(--text) !important;
   font-weight: 400 !important;
   margin: 0;
+}
+
+.player-option label input[type="checkbox"] {
+  grid-column: 1;
+}
+
+.player-option label span:not(.player-source-icon) {
+  grid-column: 2;
+}
+
+.player-source-icon {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  opacity: 0.85;
+  transition: opacity 140ms ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.player-option label:hover .player-source-icon {
+  opacity: 1;
+}
+
+.player-source-icon svg {
+  display: block;
 }
 
 .player-option label:hover {
@@ -463,6 +533,44 @@ header.shell {
 
 .player-option span {
   flex: 1;
+}
+
+.player-dropdown-footer {
+  flex-shrink: 0;
+  padding: 6px 6px 6px 6px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 0 0 10px 10px;
+}
+
+.player-dropdown-divider {
+  display: none;
+}
+
+.import-player-btn {
+  width: 100%;
+  background: var(--accent-soft) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  padding: 8px 10px !important;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 140ms ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  justify-content: center;
+}
+
+.import-player-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--accent) !important;
+}
+
+.import-player-btn svg {
+  flex-shrink: 0;
 }
 
 .refresh-btn {

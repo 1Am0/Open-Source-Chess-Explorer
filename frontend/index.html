@@ -18,30 +18,30 @@
       <div id="board" class="board"></div>
       <div class="controls">
         <button id="toStartBtn" type="button" title="Go to start (↑)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M11 13L6 8L11 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M5 3L5 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
         <button id="prevBtn" type="button" title="Previous move (←)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10 13L5 8L10 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
         <button id="nextBtn" type="button" title="Next move (→)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 13L11 8L6 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
         <button id="toEndBtn" type="button" title="Go to end (↓)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M5 13L10 8L5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M11 3L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
         <div class="divider"></div>
         <button id="flipBtn" type="button" title="Flip board (F)">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M8 2V14M8 14L4 10M8 14L12 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M8 14V2M8 2L12 6M8 2L4 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
           </svg>
@@ -52,12 +52,48 @@
 
     <section class="panel side">
       <div class="action-bar">
-        <button id="importToggle" type="button">Import</button>
+        <div class="player-input-group">
+          <button id="playerSelectBtn" type="button" class="player-select-btn">
+            <span id="playerSelectLabel">Select players</span>
+            <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div id="playerDropdown" class="player-dropdown hidden">
+            <div class="player-dropdown-content">
+              <div class="player-option">
+                <label>
+                  <input type="checkbox" value="__all__" id="allPlayersCheckbox" />
+                  <span>All players</span>
+                </label>
+              </div>
+              <div id="playerCheckboxList"></div>
+            </div>
+            <div class="player-dropdown-footer">
+              <div class="player-dropdown-divider"></div>
+              <button id="importPlayerBtn" type="button" class="import-player-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 2v12M8 2l-3 3M8 2l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Import new player
+              </button>
+            </div>
+          </div>
+          <button id="refreshPlayers" type="button" class="refresh-btn" title="Refresh players">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84838 2 11.5055 2.87154 12.6 4.2M12.6 4.2V1M12.6 4.2H9.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
         <button id="filterToggle" type="button" class="icon-btn" title="Filters">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="4" width="16" height="2" fill="currentColor"/>
-            <rect x="2" y="9" width="16" height="2" fill="currentColor"/>
-            <rect x="2" y="14" width="16" height="2" fill="currentColor"/>
+          <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="3" y1="5" x2="17" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="7" cy="5" r="2" fill="currentColor"/>
+            <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="13" cy="10" r="2" fill="currentColor"/>
+            <line x1="3" y1="15" x2="17" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="9" cy="15" r="2" fill="currentColor"/>
           </svg>
         </button>
         <div id="filterOverlay" class="overlay hidden">
@@ -67,33 +103,6 @@
               <button id="closeFilterOverlay" type="button" class="close-btn">&times;</button>
             </div>
             <div class="filters">
-              <div class="filter-row full-width">
-                <label for="playerSelectBtn">Players</label>
-                <div class="player-input-group">
-                  <button id="playerSelectBtn" type="button" class="player-select-btn">
-                    <span id="playerSelectLabel">Select players</span>
-                    <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <div id="playerDropdown" class="player-dropdown hidden">
-                    <div class="player-dropdown-content">
-                      <div class="player-option">
-                        <label>
-                          <input type="checkbox" value="__all__" id="allPlayersCheckbox" />
-                          <span>All players</span>
-                        </label>
-                      </div>
-                      <div id="playerCheckboxList"></div>
-                    </div>
-                  </div>
-                  <button id="refreshPlayers" type="button" class="refresh-btn" title="Refresh players">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84838 2 11.5055 2.87154 12.6 4.2M12.6 4.2V1M12.6 4.2H9.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
               <div class="filter-row">
                 <label for="color">Color</label>
                 <select id="color">
@@ -140,19 +149,36 @@
             </div>
           </div>
         </div>
+        <div id="importOverlay" class="overlay hidden">
+          <div class="overlay-content">
+            <div class="overlay-header">
+              <h2>Import Player</h2>
+              <button id="closeImportOverlay" type="button" class="close-btn">&times;</button>
+            </div>
+            <div class="filters">
+              <div class="filter-row">
+                <label for="importSource">Source</label>
+                <select id="importSource">
+                  <option value="chess.com" selected>Chess.com</option>
+                  <option value="lichess">Lichess</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label for="importUsername">Username</label>
+                <input id="importUsername" type="text" placeholder="Enter username" />
+              </div>
+              <div class="filter-row full-width">
+                <p class="import-hint">Games will be imported and stored under the username.</p>
+              </div>
+              <div class="filter-row full-width actions">
+                <button id="startImport" type="button">Import games</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div id="importPanel" class="collapsible-body hidden">
-        <div class="filter-row">
-          <label for="importUsername">Chess.com username</label>
-          <input id="importUsername" type="text" placeholder="e.g. hikaru" />
-        </div>
-        <div class="filter-row actions">
-          <button id="importBtn" type="button">Import games</button>
-        </div>
-        <div id="importStatus"></div>
-      </div>
-
+      <div class="opening-display" id="openingDisplay"></div>
       <div class="path" id="pathTrail"></div>
       <div class="next-moves">
         <div class="section-title">Next moves</div>

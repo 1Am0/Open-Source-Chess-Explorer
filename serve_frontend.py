@@ -13,7 +13,9 @@ import chess
 
 from chess_explorer.filter_games import build_color_tries, filter_games
 from chess_explorer.import_games import import_games
+from chess_explorer.import_lichess import import_lichess_games
 from chess_explorer.storage import (
+    find_player_path,
     list_players,
     load_games,
     load_store,
@@ -41,7 +43,13 @@ class GameCache:
                 return "default", [self.legacy_path]
             if not all_players:
                 return "default", []
-            return "all", [path_for_player(p, self.games_dir) for p in all_players]
+            # Find paths for all players (accounts for source subdirectories)
+            paths = []
+            for p in all_players:
+                player_path = find_player_path(p, self.games_dir)
+                if player_path:
+                    paths.append(player_path)
+            return "all", paths
         
         # Convert single player to list
         if isinstance(players, str):
@@ -53,7 +61,12 @@ class GameCache:
         # Sort for consistent cache key
         players_sorted = sorted(players)
         key = "+".join(players_sorted)
-        paths = [path_for_player(p, self.games_dir) for p in players_sorted]
+        # Find paths for each player (accounts for source subdirectories)
+        paths = []
+        for p in players_sorted:
+            player_path = find_player_path(p, self.games_dir)
+            if player_path:
+                paths.append(player_path)
         return key, paths
 
     def _load_games_if_needed(self, player_key: str, paths: List[Path]) -> None:
@@ -160,11 +173,31 @@ def empty_stats() -> Dict[str, float]:
     }
 
 
-def available_players(games_dir: Path, legacy_path: Path | None) -> List[str]:
-    names = set(list_players(games_dir))
+def available_players(games_dir: Path, legacy_path: Path | None) -> List[Dict[str, str]]:
+    """Return list of players with their source platform."""
+    players_info = []
+    
+    # Add legacy player if exists
     if legacy_path and legacy_path.exists():
-        names.add("default")
-    return sorted(names)
+        players_info.append({"name": "default", "source": "legacy"})
+    
+    # Get players from root directory (legacy/no source)
+    if games_dir.exists():
+        for p in games_dir.glob("*.json"):
+            if p.is_file():
+                players_info.append({"name": p.stem, "source": "legacy"})
+        
+        # Get players from source subdirectories
+        for source_dir in games_dir.iterdir():
+            if source_dir.is_dir():
+                source_name = source_dir.name
+                for p in source_dir.glob("*.json"):
+                    if p.is_file():
+                        players_info.append({"name": p.stem, "source": source_name})
+    
+    # Sort by name (case-insensitive)
+    players_info.sort(key=lambda x: x["name"].lower())
+    return players_info
 
 
 def next_moves_for_path(trie: Trie, path: Iterable[str]) -> Tuple[Dict[str, float], List[Dict[str, Dict]]]:
@@ -269,9 +302,12 @@ def handle_import(payload: Dict, cache: GameCache, games_dir: Path) -> Dict:
         return {"error": "username is required"}, 400
 
     player = (payload.get("player") or username).strip()
-    target_path = path_for_player(player, games_dir)
+    source = (payload.get("source") or "chess.com").strip().lower()
+    
+    # Determine target path with source subdirectory
+    target_path = path_for_player(player, games_dir, source=source)
 
-    print(f"[import] Starting import for {username} → {player}", flush=True)
+    print(f"[import] Starting import for {username} from {source} → {player}", flush=True)
     t0 = time.perf_counter()
     
     before = load_store(target_path)
@@ -279,7 +315,10 @@ def handle_import(payload: Dict, cache: GameCache, games_dir: Path) -> Dict:
     print(f"[import] Current games: {before_count}", flush=True)
     
     try:
-        import_games(username, player=player, out_path=target_path, quiet=False)
+        if source == "lichess":
+            import_lichess_games(username, player=player, out_path=target_path, quiet=False)
+        else:
+            import_games(username, player=player, out_path=target_path, quiet=False)
     except Exception as exc:  # noqa: BLE001 - return message to client
         print(f"[import] ERROR: {exc}", flush=True)
         return {"error": str(exc)}, 500
@@ -293,7 +332,7 @@ def handle_import(payload: Dict, cache: GameCache, games_dir: Path) -> Dict:
     duration_ms = (t1 - t0) * 1000
     print(f"[import] Complete: +{added} new games (total: {after_count}) in {duration_ms:.0f}ms", flush=True)
     
-    return {"imported": added, "total": after_count, "username": username, "player": player}, 200
+    return {"imported": added, "total": after_count, "username": username, "player": player, "source": source}, 200
 
 
 def make_handler(frontend_dir: Path, cache: GameCache, games_dir: Path, legacy_path: Path | None):

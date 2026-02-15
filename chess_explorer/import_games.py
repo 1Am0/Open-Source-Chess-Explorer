@@ -182,7 +182,13 @@ def import_games(
 ) -> None:
     t_start = time.perf_counter()
     username = username.strip()
-    target_path = resolve_store_path(player or username, out_path)
+    
+    # Use source parameter for chess.com games
+    if out_path:
+        target_path = out_path
+    else:
+        from .storage import path_for_player
+        target_path = path_for_player(player or username, source="chess.com")
     
     t0 = time.perf_counter()
     raw_games = fetch_all_archives(username, show_progress=not quiet)

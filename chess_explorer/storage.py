@@ -24,10 +24,17 @@ def _sanitize_player_name(name: str) -> str:
     return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in cleaned)
 
 
-def path_for_player(player: Optional[str], games_dir: Path = GAMES_DIR) -> Path:
+def path_for_player(player: Optional[str], games_dir: Path = GAMES_DIR, source: Optional[str] = None) -> Path:
     ensure_games_dir(games_dir)
     if not player:
         return DEFAULT_GAMES_FILE
+    
+    # Organize by source subdirectory if provided
+    if source:
+        source_dir = games_dir / source
+        source_dir.mkdir(parents=True, exist_ok=True)
+        return source_dir / f"{_sanitize_player_name(player)}.json"
+    
     return games_dir / f"{_sanitize_player_name(player)}.json"
 
 
@@ -71,6 +78,62 @@ def load_games(path: Path) -> List[Dict]:
 
 
 def list_players(games_dir: Path = GAMES_DIR) -> List[str]:
+    """List all players from both root and source subdirectories."""
     if not games_dir.exists():
         return []
-    return sorted(p.stem for p in games_dir.glob("*.json") if p.is_file())
+    
+    players = set()
+    
+    # Get players from root directory (legacy/no source)
+    players.update(p.stem for p in games_dir.glob("*.json") if p.is_file())
+    
+    # Get players from source subdirectories
+    for source_dir in games_dir.iterdir():
+        if source_dir.is_dir():
+            players.update(p.stem for p in source_dir.glob("*.json") if p.is_file())
+    
+    return sorted(players)
+
+
+def list_players_by_source(games_dir: Path = GAMES_DIR) -> Dict[str, List[str]]:
+    """List players organized by source."""
+    if not games_dir.exists():
+        return {}
+    
+    result = {}
+    
+    # Get players from root directory (legacy/no source)
+    root_players = [p.stem for p in games_dir.glob("*.json") if p.is_file()]
+    if root_players:
+        result["legacy"] = sorted(root_players)
+    
+    # Get players from source subdirectories
+    for source_dir in games_dir.iterdir():
+        if source_dir.is_dir():
+            players = [p.stem for p in source_dir.glob("*.json") if p.is_file()]
+            if players:
+                result[source_dir.name] = sorted(players)
+    
+    return result
+
+
+def find_player_path(player: str, games_dir: Path = GAMES_DIR) -> Optional[Path]:
+    """Find the path to a player's file, checking all source directories."""
+    if not games_dir.exists():
+        return None
+    
+    sanitized = _sanitize_player_name(player)
+    
+    # Check root directory first (legacy)
+    root_path = games_dir / f"{sanitized}.json"
+    if root_path.exists():
+        return root_path
+    
+    # Check source subdirectories
+    for source_dir in games_dir.iterdir():
+        if source_dir.is_dir():
+            source_path = source_dir / f"{sanitized}.json"
+            if source_path.exists():
+                return source_path
+    
+    return None
